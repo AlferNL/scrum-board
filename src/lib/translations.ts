@@ -48,12 +48,20 @@ export const t = {
     critical: 'Kritiek',
   },
 
-  // Status Labels
+  // Status Labels (Task columns)
   status: {
     todo: 'Te Doen',
     'in-progress': 'In Uitvoering',
     review: 'Review',
     done: 'Voltooid',
+  },
+
+  // Story Status Labels
+  storyStatus: {
+    OPEN: 'Open',
+    IN_PROGRESS: 'In Uitvoering',
+    DONE: 'Voltooid',
+    ARCHIVED: 'Gearchiveerd',
   },
 
   // Modal Forms
@@ -118,6 +126,14 @@ export const t = {
     selectProject: 'Selecteer Project',
     noProjects: 'Geen projecten',
     createFirst: 'Maak je eerste project aan',
+  },
+
+  // Story Filter
+  filter: {
+    label: 'Filter',
+    active: 'Actief',
+    all: 'Alle',
+    showArchived: 'Gearchiveerd Tonen',
   },
 
   // Sprints

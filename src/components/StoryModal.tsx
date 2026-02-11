@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Story, Priority, User } from '@/types';
+import { Story, Priority, User, StoryStatus, STORY_STATUS_CONFIG } from '@/types';
 import { t } from '@/lib/translations';
 
 interface StoryModalProps {
@@ -34,6 +34,7 @@ export default function StoryModal({
     title: '',
     description: '',
     priority: 'medium' as Priority,
+    status: 'OPEN' as StoryStatus,
     assigneeId: '',
   });
 
@@ -45,6 +46,7 @@ export default function StoryModal({
         title: story.title,
         description: story.description || '',
         priority: story.priority,
+        status: story.status || 'OPEN',
         assigneeId: story.assignee?.id || '',
       });
     } else {
@@ -52,6 +54,7 @@ export default function StoryModal({
         title: '',
         description: '',
         priority: 'medium',
+        status: 'OPEN',
         assigneeId: '',
       });
     }
@@ -68,6 +71,7 @@ export default function StoryModal({
       title: formData.title,
       description: formData.description,
       priority: formData.priority,
+      status: formData.status,
       storyPoints: 1, // Default value, not used for display anymore
       assignee,
     });
@@ -160,6 +164,24 @@ export default function StoryModal({
               >
                 {PRIORITY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+          </div>
+
+          {/* Status */}
+          <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t.modal.status}
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as StoryStatus })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {(Object.keys(STORY_STATUS_CONFIG) as StoryStatus[]).map((status) => (
+                  <option key={status} value={status}>{t.storyStatus[status]}</option>
                 ))}
               </select>
           </div>

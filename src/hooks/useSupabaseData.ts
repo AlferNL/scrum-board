@@ -46,6 +46,7 @@ function transformStory(dbStory: any): Story {
     description: dbStory.description || '',
     storyPoints: dbStory.story_points,
     priority: dbStory.priority as Story['priority'],
+    status: dbStory.status || 'OPEN',
     assignee: dbStory.users ? transformUser(dbStory.users) : undefined,
     tasks: (dbStory.tasks || []).map(transformTask),
     acceptanceCriteria: [],
@@ -342,6 +343,7 @@ export function useSupabaseData() {
         description: storyData.description,
         story_points: storyData.storyPoints,
         priority: storyData.priority,
+        status: storyData.status || 'OPEN',
         assignee_id: storyData.assignee?.id || null,
       })
       .select()
@@ -360,6 +362,7 @@ export function useSupabaseData() {
         description: storyData.description,
         story_points: storyData.storyPoints,
         priority: storyData.priority,
+        status: storyData.status,
         assignee_id: storyData.assignee?.id || null,
         updated_at: new Date().toISOString(),
       })

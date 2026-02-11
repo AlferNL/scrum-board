@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS stories (
   description TEXT,
   story_points INTEGER DEFAULT 5,
   priority TEXT DEFAULT 'medium',
+  status TEXT DEFAULT 'OPEN',
   assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

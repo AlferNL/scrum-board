@@ -23,12 +23,27 @@ export type UserRole = 'ADMIN' | 'PRODUCT_OWNER' | 'SCRUM_MASTER' | 'MEMBER' | '
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 /**
+ * Story Status for tracking story progress
+ */
+export type StoryStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'ARCHIVED';
+
+/**
  * Status configuration with labels and colors
  */
 export const USER_STATUS_CONFIG: Record<UserStatus, { label: string; color: string; bgColor: string }> = {
   PENDING: { label: 'Wachtend', color: 'text-yellow-700', bgColor: 'bg-yellow-100 dark:bg-yellow-900/30' },
   APPROVED: { label: 'Goedgekeurd', color: 'text-green-700', bgColor: 'bg-green-100 dark:bg-green-900/30' },
   REJECTED: { label: 'Afgewezen', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+};
+
+/**
+ * Story Status configuration with labels and colors
+ */
+export const STORY_STATUS_CONFIG: Record<StoryStatus, { label: string; color: string; bgColor: string; icon: string }> = {
+  OPEN: { label: 'Open', color: 'text-slate-700 dark:text-slate-300', bgColor: 'bg-slate-100 dark:bg-slate-800', icon: '○' },
+  IN_PROGRESS: { label: 'In Uitvoering', color: 'text-blue-700 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-900/30', icon: '◐' },
+  DONE: { label: 'Voltooid', color: 'text-green-700 dark:text-green-300', bgColor: 'bg-green-100 dark:bg-green-900/30', icon: '●' },
+  ARCHIVED: { label: 'Gearchiveerd', color: 'text-gray-500 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800', icon: '◉' },
 };
 
 /**
@@ -86,6 +101,7 @@ export interface Story {
   description: string;
   storyPoints: number;
   priority: Priority;
+  status: StoryStatus; // Story workflow status
   assignee?: User;
   tasks: Task[];
   acceptanceCriteria?: string[];

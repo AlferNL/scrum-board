@@ -1,6 +1,6 @@
 'use client';
 
-import { Story, Column, PRIORITY_CONFIG, COLUMNS } from '@/types';
+import { Story, Column, PRIORITY_CONFIG, COLUMNS, STORY_STATUS_CONFIG } from '@/types';
 import Image from 'next/image';
 import { t } from '@/lib/translations';
 
@@ -20,6 +20,7 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask 
   const progress = { total, completed, percentage };
   
   const priorityConfig = PRIORITY_CONFIG[story.priority];
+  const statusConfig = story.status ? STORY_STATUS_CONFIG[story.status] : STORY_STATUS_CONFIG.OPEN;
 
   // Determine progress bar color based on completion
   const getProgressColor = (percentage: number) => {
@@ -31,17 +32,30 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask 
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 min-w-[280px] max-w-[280px] h-full flex flex-col group">
-      {/* Header with Priority & Edit */}
+      {/* Header with Priority, Status & Edit */}
       <div className="flex items-center justify-between mb-3">
-        <span
-          className={`
-            text-xs font-semibold px-2.5 py-1 rounded-full
-            ${priorityConfig.bgColor} ${priorityConfig.color}
-            dark:bg-opacity-20
-          `}
-        >
-          {priorityConfig.label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`
+              text-xs font-semibold px-2.5 py-1 rounded-full
+              ${priorityConfig.bgColor} ${priorityConfig.color}
+              dark:bg-opacity-20
+            `}
+          >
+            {priorityConfig.label}
+          </span>
+          {/* Status Badge */}
+          <span
+            className={`
+              text-xs font-medium px-2 py-0.5 rounded-full
+              ${statusConfig.bgColor} ${statusConfig.color}
+              dark:bg-opacity-30
+            `}
+            title={t.storyStatus[story.status || 'OPEN']}
+          >
+            {statusConfig.icon}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           {/* Edit Button - only show if onEdit handler is provided */}
           {onEdit && (

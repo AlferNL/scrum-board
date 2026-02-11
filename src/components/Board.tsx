@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column } from '@/types';
+import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column, StoryStatus, STORY_STATUS_CONFIG } from '@/types';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/lib/AuthContext';
 import { t } from '@/lib/translations';
@@ -92,6 +92,9 @@ export default function Board() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [activeStoryId, setActiveStoryId] = useState<string>('');
   const [saving, setSaving] = useState(false);
+
+  // Story filter state - 'ALL' shows all except ARCHIVED, use specific status or 'ARCHIVED' to filter
+  const [storyStatusFilter, setStoryStatusFilter] = useState<StoryStatus | 'ALL' | 'ACTIVE'>('ACTIVE');
 
   // Handle project change
   const handleProjectChange = (projectId: string) => {
@@ -559,9 +562,26 @@ export default function Board() {
         <div className="flex gap-4 mb-4 sticky top-0 z-10 bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 py-2">
           {/* Spacer for Story Card Column */}
           <div className="min-w-[280px] max-w-[280px] flex-shrink-0">
-            <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider px-4">
-              {t.board.userStories}
-            </h2>
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                {t.board.userStories}
+              </h2>
+              {/* Story Status Filter */}
+              <select
+                value={storyStatusFilter}
+                onChange={(e) => setStoryStatusFilter(e.target.value as StoryStatus | 'ALL' | 'ACTIVE')}
+                className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
+                           bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300
+                           focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                title={t.filter.label}
+              >
+                <option value="ACTIVE">{t.filter.active}</option>
+                <option value="ALL">{t.filter.all}</option>
+                {(Object.keys(STORY_STATUS_CONFIG) as StoryStatus[]).map((status) => (
+                  <option key={status} value={status}>{t.storyStatus[status]}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Column Headers */}
@@ -593,7 +613,15 @@ export default function Board() {
         {/* Drag and Drop Context */}
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="space-y-4">
-            {currentSprint.stories.map((story) => (
+            {currentSprint.stories
+              .filter((story) => {
+                // Apply story status filter
+                const storyStatus = story.status || 'OPEN';
+                if (storyStatusFilter === 'ALL') return true;
+                if (storyStatusFilter === 'ACTIVE') return storyStatus !== 'ARCHIVED';
+                return storyStatus === storyStatusFilter;
+              })
+              .map((story) => (
               <SwimlaneRow 
                 key={story.id} 
                 story={story}
@@ -607,7 +635,12 @@ export default function Board() {
         </DragDropContext>
 
         {/* Empty State */}
-        {currentSprint.stories.length === 0 && (
+        {currentSprint.stories.filter((story) => {
+          const storyStatus = story.status || 'OPEN';
+          if (storyStatusFilter === 'ALL') return true;
+          if (storyStatusFilter === 'ACTIVE') return storyStatus !== 'ARCHIVED';
+          return storyStatus === storyStatusFilter;
+        }).length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
             <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
