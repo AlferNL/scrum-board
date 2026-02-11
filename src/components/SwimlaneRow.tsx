@@ -2,21 +2,21 @@
 
 import { Story, Task, Column, getTasksByStatus, TaskStatus, StoryStatus } from '@/types';
 import { Droppable } from '@hello-pangea/dnd';
-import { useAuth } from '@/lib/AuthContext';
+import { Permissions } from '@/lib/permissions';
 import StoryCard from './StoryCard';
 import TaskCard from './TaskCard';
 
 interface SwimlaneRowProps {
   story: Story;
   columns: Column[];
+  permissions: Permissions;
   onEditStory?: (story: Story) => void;
   onEditTask?: (task: Task) => void;
   onAddTask?: (storyId: string) => void;
   onStatusChange?: (storyId: string, status: StoryStatus) => void;
 }
 
-export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, onAddTask, onStatusChange }: SwimlaneRowProps) {
-  const { permissions } = useAuth();
+export default function SwimlaneRow({ story, columns, permissions, onEditStory, onEditTask, onAddTask, onStatusChange }: SwimlaneRowProps) {
   
   return (
     <div className="flex gap-4 min-h-[200px] bg-white/50 dark:bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm">

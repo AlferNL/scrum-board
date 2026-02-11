@@ -641,6 +641,7 @@ export default function Board() {
                 key={story.id} 
                 story={story}
                 columns={currentColumns}
+                permissions={permissions}
                 onEditStory={handleEditStory}
                 onEditTask={handleEditTask}
                 onAddTask={handleAddTask}
