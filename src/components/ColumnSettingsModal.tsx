@@ -63,6 +63,12 @@ export default function ColumnSettingsModal({
     setEditedColumns(updated);
   };
 
+  const handleCountsAsCompleteChange = (index: number, checked: boolean) => {
+    const updated = [...editedColumns];
+    updated[index] = { ...updated[index], countsAsComplete: checked };
+    setEditedColumns(updated);
+  };
+
   const handleAddColumn = () => {
     const newId = `custom-${Date.now()}` as TaskStatus;
     const colorIndex = editedColumns.length % DEFAULT_COLORS.length;
@@ -71,6 +77,7 @@ export default function ColumnSettingsModal({
       title: 'Nieuwe Kolom',
       color: DEFAULT_COLORS[colorIndex].color,
       bgColor: DEFAULT_COLORS[colorIndex].bgColor,
+      countsAsComplete: false,
     };
     setEditedColumns([...editedColumns, newColumn]);
   };
@@ -134,7 +141,7 @@ export default function ColumnSettingsModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Pas de namen en kleuren van je kolommen aan. Sleep om de volgorde te wijzigen.
+            Pas de namen en kleuren van je kolommen aan. Kolommen met &quot;Telt als klaar&quot; worden meegeteld in de voortgang.
           </p>
 
           {/* Columns List */}
@@ -142,70 +149,92 @@ export default function ColumnSettingsModal({
             {editedColumns.map((column, index) => (
               <div 
                 key={column.id} 
-                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2"
               >
-                {/* Move Buttons */}
-                <div className="flex flex-col gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleMoveUp(index)}
-                    disabled={index === 0}
-                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMoveDown(index)}
-                    disabled={index === editedColumns.length - 1}
-                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Color Dot */}
-                <div className={`w-4 h-4 rounded-full ${column.color} flex-shrink-0`} />
-
-                {/* Title Input */}
-                <input
-                  type="text"
-                  value={column.title}
-                  onChange={(e) => handleTitleChange(index, e.target.value)}
-                  className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg 
-                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Kolom naam..."
-                />
-
-                {/* Color Picker - Show all colors in a grid */}
-                <div className="flex flex-wrap gap-1 max-w-[140px]">
-                  {DEFAULT_COLORS.map((colorOption, colorIndex) => (
+                <div className="flex items-center gap-3">
+                  {/* Move Buttons */}
+                  <div className="flex flex-col gap-1">
                     <button
-                      key={colorIndex}
                       type="button"
-                      onClick={() => handleColorChange(index, colorIndex)}
-                      className={`w-4 h-4 rounded-full ${colorOption.color} transition-transform hover:scale-125
-                        ${column.color === colorOption.color ? 'ring-2 ring-offset-1 ring-blue-500 dark:ring-offset-gray-700' : ''}`}
-                      title={colorOption.color.replace('bg-', '').replace('-500', '')}
-                    />
-                  ))}
+                      onClick={() => handleMoveUp(index)}
+                      disabled={index === 0}
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveDown(index)}
+                      disabled={index === editedColumns.length - 1}
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Color Dot */}
+                  <div className={`w-4 h-4 rounded-full ${column.color} flex-shrink-0`} />
+
+                  {/* Title Input */}
+                  <input
+                    type="text"
+                    value={column.title}
+                    onChange={(e) => handleTitleChange(index, e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Kolom naam..."
+                  />
+
+                  {/* Delete Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteColumn(index)}
+                    className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
 
-                {/* Delete Button */}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteColumn(index)}
-                  className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                {/* Second Row: Color Picker & Counts as Complete */}
+                <div className="flex items-center justify-between pl-8">
+                  {/* Color Picker */}
+                  <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {DEFAULT_COLORS.map((colorOption, colorIndex) => (
+                      <button
+                        key={colorIndex}
+                        type="button"
+                        onClick={() => handleColorChange(index, colorIndex)}
+                        className={`w-4 h-4 rounded-full ${colorOption.color} transition-transform hover:scale-125
+                          ${column.color === colorOption.color ? 'ring-2 ring-offset-1 ring-blue-500 dark:ring-offset-gray-700' : ''}`}
+                        title={colorOption.color.replace('bg-', '').replace('-500', '')}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Counts as Complete Toggle */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={column.countsAsComplete || false}
+                      onChange={(e) => handleCountsAsCompleteChange(index, e.target.checked)}
+                      className="w-4 h-4 text-green-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 
+                                 rounded focus:ring-green-500 focus:ring-2"
+                    />
+                    <span className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                      <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Telt als klaar
+                    </span>
+                  </label>
+                </div>
               </div>
             ))}
           </div>
