@@ -72,7 +72,7 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
             <button
               onClick={() => onStatusChange && setStatusMenuOpen(!statusMenuOpen)}
               className={`
-                text-xs font-medium px-2 py-0.5 rounded-full cursor-pointer
+                text-sm font-medium px-2.5 py-1 rounded-full cursor-pointer
                 ${statusConfig.bgColor} ${statusConfig.color}
                 dark:bg-opacity-30
                 ${onStatusChange ? 'hover:ring-2 hover:ring-offset-1 hover:ring-blue-400 transition-all' : ''}
@@ -146,8 +146,8 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
       {/* Progress Section */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.story.progress}</span>
-          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{t.story.progress}</span>
+          <span className="text-xs font-semibold text-gray-800 dark:text-white">
             {progress.completed}/{progress.total} {t.story.tasks}
           </span>
         </div>
