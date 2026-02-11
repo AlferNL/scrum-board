@@ -3,6 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Project, Sprint, Story, Task, User, UserRole, UserStatus, ProjectMember, ProjectRole } from '@/types';
+import { useAuth } from '@/lib/AuthContext';
+import { 
+  sendTeamsNotification, 
+  ActivityType,
+  findProjectBySprintId,
+  findProjectByStoryId,
+  findProjectByTaskId 
+} from '@/lib/teamsWebhook';
 
 // ============================================
 // Transform database data to app types
@@ -107,6 +115,7 @@ function transformProject(dbProject: any): Project {
     name: dbProject.name,
     description: dbProject.description,
     color: dbProject.color,
+    webhookUrl: dbProject.webhook_url,
     teamMembers,
     members,
     sprints: (dbProject.sprints || []).map(transformSprint),
@@ -125,6 +134,10 @@ export function useSupabaseData() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get current user for webhook notifications (convert null to undefined)
+  const { currentUser } = useAuth();
+  const webhookUser = currentUser ?? undefined;
 
   // Fetch all data
   const fetchData = useCallback(async () => {
@@ -198,6 +211,7 @@ export function useSupabaseData() {
         name: projectData.name,
         description: projectData.description,
         color: projectData.color,
+        webhook_url: projectData.webhookUrl,
       })
       .select()
       .single();
@@ -214,11 +228,21 @@ export function useSupabaseData() {
       );
     }
 
+    // Send Teams notification
+    sendTeamsNotification(projectData.webhookUrl, webhookUser,
+      'project_created',
+      { entityType: 'project', entityName: projectData.name || 'Nieuw project' },
+      projectData.name || 'Nieuw project'
+    );
+
     await fetchData();
     return data.id;
   };
 
   const updateProject = async (id: string, projectData: Partial<Project>) => {
+    // Get existing project for webhook URL and name
+    const existingProject = projects.find(p => p.id === id);
+    
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -227,6 +251,7 @@ export function useSupabaseData() {
     if (projectData.description !== undefined) updateData.description = projectData.description;
     if (projectData.color !== undefined) updateData.color = projectData.color;
     if (projectData.columns !== undefined) updateData.columns = JSON.stringify(projectData.columns);
+    if (projectData.webhookUrl !== undefined) updateData.webhook_url = projectData.webhookUrl;
 
     const { error } = await supabase
       .from('projects')
@@ -248,12 +273,34 @@ export function useSupabaseData() {
       }
     }
 
+    // Send Teams notification (use new webhookUrl if provided, otherwise existing)
+    const webhookUrl = projectData.webhookUrl ?? existingProject?.webhookUrl;
+    const projectName = projectData.name ?? existingProject?.name ?? 'Project';
+    sendTeamsNotification(webhookUrl, webhookUser,
+      'project_updated',
+      { entityType: 'project', entityName: projectName },
+      projectName
+    );
+
     await fetchData();
   };
 
   const deleteProject = async (id: string) => {
+    // Get project info before deletion
+    const existingProject = projects.find(p => p.id === id);
+    
     const { error } = await supabase.from('projects').delete().eq('id', id);
     if (error) throw error;
+    
+    // Send Teams notification
+    if (existingProject) {
+      sendTeamsNotification(existingProject.webhookUrl, webhookUser,
+        'project_deleted',
+        { entityType: 'project', entityName: existingProject.name },
+        existingProject.name
+      );
+    }
+
     await fetchData();
   };
 
@@ -262,6 +309,9 @@ export function useSupabaseData() {
   // ============================================
 
   const createSprint = async (sprintData: Partial<Sprint> & { projectId: string }) => {
+    // Get project for webhook
+    const project = projects.find(p => p.id === sprintData.projectId);
+    
     // If making active, deactivate others first
     if (sprintData.isActive) {
       await supabase
@@ -295,11 +345,21 @@ export function useSupabaseData() {
       );
     }
 
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'sprint_created',
+      { entityType: 'sprint', entityName: sprintData.name || 'Nieuwe sprint' },
+      project?.name || 'Project'
+    );
+
     await fetchData();
     return data.id;
   };
 
   const updateSprint = async (id: string, sprintData: Partial<Sprint>) => {
+    // Find project for webhook
+    const project = findProjectBySprintId(projects, id);
+    
     // If making active, deactivate others first
     if (sprintData.isActive && sprintData.projectId) {
       await supabase
@@ -338,12 +398,31 @@ export function useSupabaseData() {
       }
     }
 
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'sprint_updated',
+      { entityType: 'sprint', entityName: sprintData.name || 'Sprint' },
+      (project as any)?.name || 'Project'
+    );
+
     await fetchData();
   };
 
   const deleteSprint = async (id: string) => {
+    // Find project and sprint info before deletion
+    const project = findProjectBySprintId(projects, id);
+    const sprint = projects.flatMap(p => p.sprints).find(s => s.id === id);
+    
     const { error } = await supabase.from('sprints').delete().eq('id', id);
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'sprint_deleted',
+      { entityType: 'sprint', entityName: sprint?.name || 'Sprint' },
+      (project as any)?.name || 'Project'
+    );
+
     await fetchData();
   };
 
@@ -352,6 +431,9 @@ export function useSupabaseData() {
   // ============================================
 
   const createStory = async (storyData: Partial<Story> & { sprintId: string }) => {
+    // Find project for webhook
+    const project = projects.find(p => p.sprints?.some(s => s.id === storyData.sprintId));
+    
     const { data, error } = await supabase
       .from('stories')
       .insert({
@@ -367,11 +449,23 @@ export function useSupabaseData() {
       .single();
 
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'story_created',
+      { entityType: 'story', entityName: storyData.title || 'Nieuwe story' },
+      project?.name || 'Project'
+    );
+
     await fetchData();
     return data.id;
   };
 
   const updateStory = async (id: string, storyData: Partial<Story>) => {
+    // Find project and existing story for webhook
+    const project = findProjectByStoryId(projects, id);
+    const existingStory = projects.flatMap(p => p.sprints).flatMap(s => s.stories).find(s => s.id === id);
+    
     const { error } = await supabase
       .from('stories')
       .update({
@@ -386,12 +480,41 @@ export function useSupabaseData() {
       .eq('id', id);
 
     if (error) throw error;
+
+    // Send Teams notification - check if status changed
+    const activityType: ActivityType = storyData.status && existingStory?.status !== storyData.status 
+      ? 'story_status_changed' 
+      : 'story_updated';
+    
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      activityType,
+      { 
+        entityType: 'story', 
+        entityName: storyData.title || existingStory?.title || 'Story',
+        oldValue: activityType === 'story_status_changed' ? existingStory?.status : undefined,
+        newValue: activityType === 'story_status_changed' ? storyData.status : undefined,
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
   const deleteStory = async (id: string) => {
+    // Find project and story info before deletion
+    const project = findProjectByStoryId(projects, id);
+    const story = projects.flatMap(p => p.sprints).flatMap(s => s.stories).find(s => s.id === id);
+    
     const { error } = await supabase.from('stories').delete().eq('id', id);
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'story_deleted',
+      { entityType: 'story', entityName: story?.title || 'Story' },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
@@ -400,6 +523,10 @@ export function useSupabaseData() {
   // ============================================
 
   const addProjectMember = async (projectId: string, userId: string, role: ProjectRole) => {
+    // Get project and user for webhook
+    const project = projects.find(p => p.id === projectId);
+    const user = users.find(u => u.id === userId);
+    
     const { error } = await supabase
       .from('project_members')
       .insert({
@@ -409,10 +536,26 @@ export function useSupabaseData() {
       });
 
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'member_added',
+      { 
+        entityType: 'member', 
+        entityName: user?.name || 'Nieuw lid',
+        additionalInfo: `Rol: ${role}`
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
   const updateProjectMemberRole = async (projectId: string, userId: string, role: ProjectRole) => {
+    // Get project and member info
+    const project = projects.find(p => p.id === projectId);
+    const member = project?.members?.find(m => m.userId === userId);
+    
     const { error } = await supabase
       .from('project_members')
       .update({
@@ -423,10 +566,27 @@ export function useSupabaseData() {
       .eq('user_id', userId);
 
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'member_role_changed',
+      { 
+        entityType: 'member', 
+        entityName: member?.user.name || 'Lid',
+        oldValue: member?.role,
+        newValue: role
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
   const removeProjectMember = async (projectId: string, userId: string) => {
+    // Get project and member info before removal
+    const project = projects.find(p => p.id === projectId);
+    const member = project?.members?.find(m => m.userId === userId);
+    
     const { error } = await supabase
       .from('project_members')
       .delete()
@@ -434,6 +594,14 @@ export function useSupabaseData() {
       .eq('user_id', userId);
 
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'member_removed',
+      { entityType: 'member', entityName: member?.user.name || 'Lid' },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
@@ -442,6 +610,24 @@ export function useSupabaseData() {
   // ============================================
 
   const createTask = async (taskData: Partial<Task> & { storyId: string }) => {
+    // Find project and story for webhook
+    const projectInfo = findProjectByTaskId(projects, taskData.storyId);
+    // For new tasks, we need to find the story differently
+    let project: { webhookUrl?: string; name: string } | undefined;
+    let storyTitle: string | undefined;
+    
+    for (const p of projects) {
+      for (const sprint of p.sprints || []) {
+        const story = sprint.stories?.find(s => s.id === taskData.storyId);
+        if (story) {
+          project = p;
+          storyTitle = story.title;
+          break;
+        }
+      }
+      if (project) break;
+    }
+    
     const { data, error } = await supabase
       .from('tasks')
       .insert({
@@ -457,11 +643,31 @@ export function useSupabaseData() {
       .single();
 
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'task_created',
+      { 
+        entityType: 'task', 
+        entityName: taskData.title || 'Nieuwe taak',
+        additionalInfo: storyTitle ? `Story: ${storyTitle}` : undefined
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
     return data.id;
   };
 
   const updateTask = async (id: string, taskData: Partial<Task>) => {
+    // Find project and existing task
+    const { project, storyTitle } = findProjectByTaskId(projects, id);
+    const existingTask = projects
+      .flatMap(p => p.sprints)
+      .flatMap(s => s.stories)
+      .flatMap(s => s.tasks)
+      .find(t => t.id === id);
+    
     const { error } = await supabase
       .from('tasks')
       .update({
@@ -476,17 +682,63 @@ export function useSupabaseData() {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Send Teams notification - check if status changed
+    const activityType: ActivityType = taskData.status && existingTask?.status !== taskData.status 
+      ? 'task_status_changed' 
+      : 'task_updated';
+    
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      activityType,
+      { 
+        entityType: 'task', 
+        entityName: taskData.title || existingTask?.title || 'Taak',
+        oldValue: activityType === 'task_status_changed' ? existingTask?.status : undefined,
+        newValue: activityType === 'task_status_changed' ? taskData.status : undefined,
+        additionalInfo: storyTitle ? `Story: ${storyTitle}` : undefined
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
   const deleteTask = async (id: string) => {
+    // Find project and task info before deletion
+    const { project, storyTitle } = findProjectByTaskId(projects, id);
+    const task = projects
+      .flatMap(p => p.sprints)
+      .flatMap(s => s.stories)
+      .flatMap(s => s.tasks)
+      .find(t => t.id === id);
+    
     const { error } = await supabase.from('tasks').delete().eq('id', id);
     if (error) throw error;
+    
+    // Send Teams notification
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'task_deleted',
+      { 
+        entityType: 'task', 
+        entityName: task?.title || 'Taak',
+        additionalInfo: storyTitle ? `Story: ${storyTitle}` : undefined
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 
   // Update task status (for drag and drop)
   const updateTaskStatus = async (taskId: string, newStatus: Task['status'], newStoryId?: string) => {
+    // Find project and existing task
+    const { project, storyTitle } = findProjectByTaskId(projects, taskId);
+    const existingTask = projects
+      .flatMap(p => p.sprints)
+      .flatMap(s => s.stories)
+      .flatMap(s => s.tasks)
+      .find(t => t.id === taskId);
+    
     const updateData: any = {
       status: newStatus,
       updated_at: new Date().toISOString(),
@@ -502,6 +754,20 @@ export function useSupabaseData() {
       .eq('id', taskId);
 
     if (error) throw error;
+    
+    // Send Teams notification for status change
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'task_status_changed',
+      { 
+        entityType: 'task', 
+        entityName: existingTask?.title || 'Taak',
+        oldValue: existingTask?.status,
+        newValue: newStatus,
+        additionalInfo: storyTitle ? `Story: ${storyTitle}` : undefined
+      },
+      project?.name || 'Project'
+    );
+
     await fetchData();
   };
 

@@ -44,6 +44,7 @@ export default function ProjectModal({
     name: '',
     description: '',
     color: PROJECT_COLORS[0],
+    webhookUrl: '',
     teamMemberIds: [] as string[],
   });
   const [newMemberUserId, setNewMemberUserId] = useState('');
@@ -57,6 +58,7 @@ export default function ProjectModal({
         name: project.name,
         description: project.description || '',
         color: project.color,
+        webhookUrl: project.webhookUrl || '',
         teamMemberIds: project.teamMembers.map((u) => u.id),
       });
     } else {
@@ -64,6 +66,7 @@ export default function ProjectModal({
         name: '',
         description: '',
         color: PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)],
+        webhookUrl: '',
         teamMemberIds: [],
       });
     }
@@ -79,6 +82,7 @@ export default function ProjectModal({
       name: formData.name,
       description: formData.description,
       color: formData.color,
+      webhookUrl: formData.webhookUrl || undefined,
       teamMembers,
     });
     
@@ -211,6 +215,26 @@ export default function ProjectModal({
                 />
               ))}
             </div>
+          </div>
+
+          {/* Teams Webhook URL */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t.modal.webhookUrl}
+            </label>
+            <input
+              type="url"
+              value={formData.webhookUrl}
+              onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+              placeholder="https://outlook.office.com/webhook/..."
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {t.modal.webhookDescription}
+            </p>
           </div>
 
           {/* Team Members / Project Members */}

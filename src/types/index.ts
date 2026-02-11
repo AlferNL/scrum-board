@@ -162,6 +162,7 @@ export interface Project {
   name: string;
   description?: string;
   color: string; // Hex color for project branding
+  webhookUrl?: string; // Microsoft Teams webhook URL for notifications
   teamMembers: User[];
   members?: ProjectMember[]; // Project members with roles
   sprints: Sprint[];

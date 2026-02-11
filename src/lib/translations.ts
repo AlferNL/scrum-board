@@ -101,6 +101,8 @@ export const t = {
     // Project specific
     projectName: 'Project Naam',
     projectColor: 'Project Kleur',
+    webhookUrl: 'Teams Webhook URL',
+    webhookDescription: 'Optioneel: Microsoft Teams webhook URL voor meldingen bij wijzigingen',
     selectSprint: 'Selecteer Sprint',
     allSprints: 'Alle Sprints',
     // Project members
