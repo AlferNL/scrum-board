@@ -167,6 +167,7 @@ export default function UsersPage() {
   const roleOptions: { value: UserRole; label: string; description: string }[] = [
     { value: 'ADMIN', label: 'Admin', description: 'Volledige toegang tot alles' },
     { value: 'PRODUCT_OWNER', label: 'Product Owner', description: 'Kan stories beheren en prioriteren' },
+    { value: 'SCRUM_MASTER', label: 'Scrum Master', description: 'Kan stories beheren en prioriteren' },
     { value: 'MEMBER', label: 'Lid', description: 'Kan taken verplaatsen en bewerken' },
     { value: 'VIEWER', label: 'Kijker', description: 'Alleen bekijken, geen wijzigingen' },
   ];

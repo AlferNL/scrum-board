@@ -37,6 +37,7 @@ export function getPermissions(role: UserRole | undefined): Permissions {
       };
 
     case 'PRODUCT_OWNER':
+    case 'SCRUM_MASTER':
       return {
         canDragTasks: true,
         canDragStories: true,      // Can reorder stories

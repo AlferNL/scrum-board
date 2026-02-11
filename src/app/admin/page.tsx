@@ -91,6 +91,7 @@ export default function AdminDashboard() {
   const roleLabels: Record<string, string> = {
     ADMIN: 'Admins',
     PRODUCT_OWNER: 'Product Owners',
+    SCRUM_MASTER: 'Scrum Masters',
     MEMBER: 'Leden',
     VIEWER: 'Kijkers',
   };
@@ -148,6 +149,7 @@ export default function AdminDashboard() {
                   <div className={`w-3 h-3 rounded-full ${
                     role === 'ADMIN' ? 'bg-red-500' :
                     role === 'PRODUCT_OWNER' ? 'bg-purple-500' :
+                    role === 'SCRUM_MASTER' ? 'bg-teal-500' :
                     role === 'MEMBER' ? 'bg-blue-500' : 'bg-gray-400'
                   }`}></div>
                   <span className="text-gray-700 dark:text-gray-300">
