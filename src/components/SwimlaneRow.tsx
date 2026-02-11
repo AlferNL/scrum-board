@@ -58,7 +58,6 @@ export default function SwimlaneRow({ story, columns, permissions, onEditStory, 
                         text-xs font-medium px-2 py-0.5 rounded-full
                         ${tasksInColumn.length > 0 ? column.bgColor : 'bg-gray-100 dark:bg-gray-700'}
                         ${tasksInColumn.length > 0 ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}
-                        dark:bg-opacity-30
                       `}>
                         {tasksInColumn.length}
                       </span>
