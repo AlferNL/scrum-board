@@ -46,10 +46,10 @@ export const USER_STATUS_CONFIG: Record<UserStatus, { label: string; color: stri
  * Story Status configuration with labels and colors
  */
 export const STORY_STATUS_CONFIG: Record<StoryStatus, { label: string; color: string; bgColor: string; icon: string }> = {
-  OPEN: { label: 'Open', color: 'text-slate-700 dark:text-slate-300', bgColor: 'bg-slate-100 dark:bg-slate-800', icon: '○' },
-  IN_PROGRESS: { label: 'In Uitvoering', color: 'text-blue-700 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-900/30', icon: '◐' },
-  DONE: { label: 'Voltooid', color: 'text-green-700 dark:text-green-300', bgColor: 'bg-green-100 dark:bg-green-900/30', icon: '●' },
-  ARCHIVED: { label: 'Gearchiveerd', color: 'text-gray-500 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800', icon: '◉' },
+  OPEN: { label: 'Open', color: 'text-slate-700 dark:text-slate-200', bgColor: 'bg-slate-200 dark:bg-slate-700', icon: '○' },
+  IN_PROGRESS: { label: 'Bezig', color: 'text-blue-700 dark:text-blue-200', bgColor: 'bg-blue-200 dark:bg-blue-800', icon: '◐' },
+  DONE: { label: 'Klaar', color: 'text-green-700 dark:text-green-200', bgColor: 'bg-green-200 dark:bg-green-800', icon: '●' },
+  ARCHIVED: { label: 'Archief', color: 'text-gray-600 dark:text-gray-300', bgColor: 'bg-gray-200 dark:bg-gray-700', icon: '◉' },
 };
 
 /**

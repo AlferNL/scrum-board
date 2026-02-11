@@ -72,15 +72,15 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
             <button
               onClick={() => onStatusChange && setStatusMenuOpen(!statusMenuOpen)}
               className={`
-                text-sm font-medium px-2.5 py-1 rounded-full cursor-pointer
+                text-xs font-semibold px-2.5 py-1 rounded-full cursor-pointer flex items-center gap-1
                 ${statusConfig.bgColor} ${statusConfig.color}
-                dark:bg-opacity-30
                 ${onStatusChange ? 'hover:ring-2 hover:ring-offset-1 hover:ring-blue-400 transition-all' : ''}
               `}
               title={onStatusChange ? `Status: ${t.storyStatus[story.status || 'OPEN']} (klik om te wijzigen)` : t.storyStatus[story.status || 'OPEN']}
               disabled={!onStatusChange}
             >
-              {statusConfig.icon}
+              <span>{statusConfig.icon}</span>
+              <span>{statusConfig.label}</span>
             </button>
             
             {/* Status Dropdown Menu */}
