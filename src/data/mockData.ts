@@ -11,6 +11,7 @@ export const mockUsers: User[] = [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
     email: 'sarah.chen@company.com',
     role: 'Frontend Developer',
+    userRole: 'ADMIN',
   },
   {
     id: 'user-2',
@@ -18,6 +19,7 @@ export const mockUsers: User[] = [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus',
     email: 'marcus.johnson@company.com',
     role: 'Backend Developer',
+    userRole: 'PRODUCT_OWNER',
   },
   {
     id: 'user-3',
@@ -25,6 +27,7 @@ export const mockUsers: User[] = [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
     email: 'elena.rodriguez@company.com',
     role: 'UX Designer',
+    userRole: 'MEMBER',
   },
   {
     id: 'user-4',
@@ -32,6 +35,7 @@ export const mockUsers: User[] = [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
     email: 'david.kim@company.com',
     role: 'Full Stack Developer',
+    userRole: 'MEMBER',
   },
   {
     id: 'user-5',
@@ -39,6 +43,7 @@ export const mockUsers: User[] = [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anna',
     email: 'anna.mueller@company.com',
     role: 'QA Engineer',
+    userRole: 'VIEWER',
   },
 ];
 

@@ -13,6 +13,21 @@ export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'done';
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 
 /**
+ * User Roles for access control
+ */
+export type UserRole = 'ADMIN' | 'PRODUCT_OWNER' | 'MEMBER' | 'VIEWER';
+
+/**
+ * Role configuration with labels and colors
+ */
+export const USER_ROLE_CONFIG: Record<UserRole, { label: string; color: string; bgColor: string }> = {
+  ADMIN: { label: 'Admin', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  PRODUCT_OWNER: { label: 'Product Owner', color: 'text-purple-700', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+  MEMBER: { label: 'Lid', color: 'text-blue-700', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  VIEWER: { label: 'Kijker', color: 'text-gray-700', bgColor: 'bg-gray-100 dark:bg-gray-700' },
+};
+
+/**
  * User/Team Member interface
  */
 export interface User {
@@ -20,7 +35,8 @@ export interface User {
   name: string;
   avatar: string; // URL to avatar image
   email?: string;
-  role?: string;
+  role?: string; // Job title/role description
+  userRole: UserRole; // Access control role
 }
 
 /**

@@ -36,18 +36,20 @@ export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) 
           {priorityConfig.label}
         </span>
         <div className="flex items-center gap-2">
-          {/* Edit Button */}
-          <button
-            onClick={() => onEdit?.(story)}
-            className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 
-                       hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors
-                       opacity-0 group-hover:opacity-100"
-            title={t.story.edit}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          </button>
+          {/* Edit Button - only show if onEdit handler is provided */}
+          {onEdit && (
+            <button
+              onClick={() => onEdit(story)}
+              className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 
+                         hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors
+                         opacity-0 group-hover:opacity-100"
+              title={t.story.edit}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          )}
           {/* Story Points */}
           <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-full">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -93,19 +95,21 @@ export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) 
         </div>
       </div>
 
-      {/* Add Task Button */}
-      <button
-        onClick={() => onAddTask?.(story.id)}
-        className="w-full mb-3 py-2 px-3 border-2 border-dashed border-gray-200 dark:border-gray-600 
-                   rounded-lg text-sm text-gray-500 dark:text-gray-400 font-medium
-                   hover:border-blue-400 hover:text-blue-600 dark:hover:border-blue-500 dark:hover:text-blue-400
-                   transition-colors flex items-center justify-center gap-2"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        {t.story.addTask}
-      </button>
+      {/* Add Task Button - only show if onAddTask handler is provided */}
+      {onAddTask && (
+        <button
+          onClick={() => onAddTask(story.id)}
+          className="w-full mb-3 py-2 px-3 border-2 border-dashed border-gray-200 dark:border-gray-600 
+                     rounded-lg text-sm text-gray-500 dark:text-gray-400 font-medium
+                     hover:border-blue-400 hover:text-blue-600 dark:hover:border-blue-500 dark:hover:text-blue-400
+                     transition-colors flex items-center justify-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t.story.addTask}
+        </button>
+      )}
 
       {/* Footer: Assignee & Story ID */}
       <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column } from '@/types';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useUser } from '@/lib/UserContext';
 import { t } from '@/lib/translations';
 import SwimlaneRow from './SwimlaneRow';
 import BoardHeader from './BoardHeader';
@@ -12,8 +13,12 @@ import StoryModal from './StoryModal';
 import SprintModal from './SprintModal';
 import ProjectModal from './ProjectModal';
 import ColumnSettingsModal from './ColumnSettingsModal';
+import UserSelector from './UserSelector';
 
 export default function Board() {
+  // User context for permissions
+  const { currentUser, permissions } = useUser();
+  
   // Supabase data hook
   const {
     projects,
@@ -107,6 +112,7 @@ export default function Board() {
   /**
    * Handle drag end - Move task between columns (and potentially stories)
    * DroppableId format: "storyId|status"
+   * Respects user permissions for dragging
    */
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -120,8 +126,20 @@ export default function Board() {
       return;
     }
 
+    // Check permissions
+    if (!permissions.canDragTasks) {
+      console.log('Permission denied: User cannot drag tasks');
+      return;
+    }
+
     const [sourceStoryId] = source.droppableId.split('|') as [string, TaskStatus];
     const [destStoryId, destStatus] = destination.droppableId.split('|') as [string, TaskStatus];
+
+    // If moving to a different story, check story drag permission
+    if (sourceStoryId !== destStoryId && !permissions.canDragStories) {
+      console.log('Permission denied: User cannot move tasks between stories');
+      return;
+    }
 
     try {
       // Update task status in Supabase
@@ -133,7 +151,7 @@ export default function Board() {
     } catch (err) {
       console.error('Error updating task status:', err);
     }
-  }, [updateTaskStatus]);
+  }, [updateTaskStatus, permissions]);
 
   // ============================================
   // Task CRUD Operations
@@ -516,7 +534,8 @@ export default function Board() {
         totalTasks={totalTasks}
         completedTasks={completedTasks}
         totalStoryPoints={totalStoryPoints}
-        onAddStory={handleAddStory}
+        users={users}
+        onAddStory={permissions.canEditTasks ? handleAddStory : undefined}
         onProjectChange={handleProjectChange}
         onSprintChange={handleSprintChange}
         onEditSprint={handleEditSprint}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Project, Sprint, Story, Task, User } from '@/types';
+import { Project, Sprint, Story, Task, User, UserRole } from '@/types';
 
 // ============================================
 // Transform database data to app types
@@ -15,6 +15,7 @@ function transformUser(dbUser: any): User {
     email: dbUser.email,
     avatar: dbUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.name}`,
     role: dbUser.role,
+    userRole: (dbUser.user_role as UserRole) || 'MEMBER', // Default to MEMBER if not set
   };
 }
 

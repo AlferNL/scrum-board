@@ -1,9 +1,10 @@
 'use client';
 
-import { Sprint, Project } from '@/types';
+import { Sprint, Project, User } from '@/types';
 import { t } from '@/lib/translations';
 import { useTheme } from '@/lib/ThemeContext';
 import ProjectSprintSelector from './ProjectSprintSelector';
+import UserSelector from './UserSelector';
 
 interface BoardHeaderProps {
   projects: Project[];
@@ -12,6 +13,7 @@ interface BoardHeaderProps {
   totalTasks: number;
   completedTasks: number;
   totalStoryPoints: number;
+  users: User[];
   onAddStory?: () => void;
   onProjectChange: (projectId: string) => void;
   onSprintChange: (sprintId: string) => void;
@@ -28,6 +30,7 @@ export default function BoardHeader({
   totalTasks,
   completedTasks,
   totalStoryPoints,
+  users,
   onAddStory,
   onProjectChange,
   onSprintChange,
@@ -114,6 +117,9 @@ export default function BoardHeader({
                 </svg>
               )}
             </button>
+
+            {/* User Selector */}
+            <UserSelector users={users} />
 
             {/* Sprint Status Badge */}
             {sprint.isActive && (

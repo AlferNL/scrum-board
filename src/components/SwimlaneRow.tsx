@@ -2,6 +2,7 @@
 
 import { Story, Task, Column, getTasksByStatus, TaskStatus } from '@/types';
 import { Droppable } from '@hello-pangea/dnd';
+import { useUser } from '@/lib/UserContext';
 import StoryCard from './StoryCard';
 import TaskCard from './TaskCard';
 
@@ -14,11 +15,17 @@ interface SwimlaneRowProps {
 }
 
 export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, onAddTask }: SwimlaneRowProps) {
+  const { permissions } = useUser();
+  
   return (
     <div className="flex gap-4 min-h-[200px] bg-white/50 dark:bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm">
       {/* Story Card - Left Side */}
       <div className="flex-shrink-0">
-        <StoryCard story={story} onEdit={onEditStory} onAddTask={onAddTask} />
+        <StoryCard 
+          story={story} 
+          onEdit={permissions.canEditStories ? onEditStory : undefined} 
+          onAddTask={permissions.canEditTasks ? onAddTask : undefined} 
+        />
       </div>
 
       {/* Task Columns - Right Side */}
@@ -29,7 +36,7 @@ export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, o
 
           return (
             <div key={column.id} className="flex-1 min-w-[180px]">
-              <Droppable droppableId={droppableId}>
+              <Droppable droppableId={droppableId} isDropDisabled={!permissions.canDragTasks}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
@@ -57,7 +64,13 @@ export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, o
                     {/* Tasks */}
                     <div className="space-y-2 min-h-[100px]">
                       {tasksInColumn.map((task, index) => (
-                        <TaskCard key={task.id} task={task} index={index} onEdit={onEditTask} />
+                        <TaskCard 
+                          key={task.id} 
+                          task={task} 
+                          index={index} 
+                          onEdit={permissions.canEditTasks ? onEditTask : undefined}
+                          isDragDisabled={!permissions.canDragTasks}
+                        />
                       ))}
                       {provided.placeholder}
                     </div>
