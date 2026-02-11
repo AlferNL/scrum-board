@@ -20,6 +20,9 @@ export const t = {
     stories: 'Stories',
     points: 'Punten',
     tasksDone: 'Taken Klaar',
+    storiesDone: 'Stories Klaar',
+    taskProgress: 'Taken',
+    storyProgress: 'Stories',
     sprintProgress: 'Sprint Voortgang',
   },
 

@@ -379,6 +379,7 @@ export default function Board() {
     0
   ) || 0;
   const totalStories = currentSprint?.stories.length || 0;
+  const completedStories = currentSprint?.stories.filter(s => s.status === 'DONE').length || 0;
 
   // Loading state
   if (loading) {
@@ -562,6 +563,7 @@ export default function Board() {
         totalTasks={totalTasks}
         completedTasks={completedTasks}
         totalStories={totalStories}
+        completedStories={completedStories}
         onAddStory={permissions.canEditTasks ? handleAddStory : undefined}
         onProjectChange={handleProjectChange}
         onSprintChange={handleSprintChange}

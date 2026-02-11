@@ -15,6 +15,7 @@ interface BoardHeaderProps {
   totalTasks: number;
   completedTasks: number;
   totalStories: number;
+  completedStories: number;
   onAddStory?: () => void;
   onProjectChange: (projectId: string) => void;
   onSprintChange: (sprintId: string) => void;
@@ -31,6 +32,7 @@ export default function BoardHeader({
   totalTasks,
   completedTasks,
   totalStories,
+  completedStories,
   onAddStory,
   onProjectChange,
   onSprintChange,
@@ -41,7 +43,8 @@ export default function BoardHeader({
 }: BoardHeaderProps) {
   const { theme, toggleTheme, isDark } = useTheme();
   const { permissions } = useAuth();
-  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const taskProgressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const storyProgressPercentage = totalStories > 0 ? Math.round((completedStories / totalStories) * 100) : 0;
 
   // Format dates in Dutch
   const formatDate = (date: Date) => {
@@ -166,32 +169,6 @@ export default function BoardHeader({
           {/* Divider */}
           <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
 
-          {/* Stories Count */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{sprint.stories.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t.board.stories}</p>
-            </div>
-          </div>
-
-          {/* Stories Count */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{totalStories}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t.board.stories}</p>
-            </div>
-          </div>
-
           {/* Tasks Progress */}
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
@@ -205,23 +182,58 @@ export default function BoardHeader({
             </div>
           </div>
 
-          {/* Sprint Progress Bar */}
-          <div className="flex-1 max-w-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.board.sprintProgress}</span>
-              <span className="text-xs font-bold text-gray-900 dark:text-white">{progressPercentage}%</span>
+          {/* Stories Progress */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-            <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  progressPercentage === 100 
-                    ? 'bg-green-500' 
-                    : progressPercentage >= 75 
-                      ? 'bg-blue-500' 
-                      : 'bg-blue-400'
-                }`}
-                style={{ width: `${progressPercentage}%` }}
-              />
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{completedStories}/{totalStories}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t.board.storiesDone}</p>
+            </div>
+          </div>
+
+          {/* Sprint Progress Bars */}
+          <div className="flex-1 max-w-md space-y-2">
+            {/* Story Progress */}
+            <div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.board.storyProgress}</span>
+                <span className="text-xs font-bold text-gray-900 dark:text-white">{storyProgressPercentage}%</span>
+              </div>
+              <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    storyProgressPercentage === 100 
+                      ? 'bg-green-500' 
+                      : storyProgressPercentage >= 75 
+                        ? 'bg-blue-500' 
+                        : 'bg-blue-400'
+                  }`}
+                  style={{ width: `${storyProgressPercentage}%` }}
+                />
+              </div>
+            </div>
+            {/* Task Progress */}
+            <div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.board.taskProgress}</span>
+                <span className="text-xs font-bold text-gray-900 dark:text-white">{taskProgressPercentage}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    taskProgressPercentage === 100 
+                      ? 'bg-green-500' 
+                      : taskProgressPercentage >= 75 
+                        ? 'bg-amber-500' 
+                        : 'bg-amber-400'
+                  }`}
+                  style={{ width: `${taskProgressPercentage}%` }}
+                />
+              </div>
             </div>
           </div>
         </div>
