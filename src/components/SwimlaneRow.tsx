@@ -2,7 +2,7 @@
 
 import { Story, Task, Column, getTasksByStatus, TaskStatus } from '@/types';
 import { Droppable } from '@hello-pangea/dnd';
-import { useUser } from '@/lib/UserContext';
+import { useAuth } from '@/lib/AuthContext';
 import StoryCard from './StoryCard';
 import TaskCard from './TaskCard';
 
@@ -15,7 +15,7 @@ interface SwimlaneRowProps {
 }
 
 export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, onAddTask }: SwimlaneRowProps) {
-  const { permissions } = useUser();
+  const { permissions } = useAuth();
   
   return (
     <div className="flex gap-4 min-h-[200px] bg-white/50 dark:bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm">
