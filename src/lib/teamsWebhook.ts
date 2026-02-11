@@ -34,15 +34,6 @@ const ACTIVITY_DESCRIPTIONS: Record<ActivityType, string> = {
   member_role_changed: 'heeft de rol van een lid gewijzigd',
 };
 
-// Entity type colors for Teams card
-const ENTITY_COLORS: Record<string, string> = {
-  project: '#3B82F6', // blue
-  sprint: '#10B981', // green
-  story: '#F59E0B', // amber
-  task: '#8B5CF6', // violet
-  member: '#EC4899', // pink
-};
-
 interface ActivityDetails {
   entityType: 'project' | 'sprint' | 'story' | 'task' | 'member';
   entityName: string;
@@ -66,7 +57,8 @@ function formatDateTime(date: Date): string {
 }
 
 /**
- * Create a Teams Adaptive Card message payload
+ * Create a Teams message payload
+ * Uses simple text format for maximum compatibility with all webhook types
  */
 function createTeamsMessage(
   user: User,
@@ -76,41 +68,34 @@ function createTeamsMessage(
 ): object {
   const timestamp = formatDateTime(new Date());
   const activityDescription = ACTIVITY_DESCRIPTIONS[activityType];
-  const themeColor = ENTITY_COLORS[details.entityType] || '#3B82F6';
-
-  // Build facts array for details
-  const facts: Array<{ title: string; value: string }> = [
-    { title: 'Project', value: projectName },
-    { title: details.entityType.charAt(0).toUpperCase() + details.entityType.slice(1), value: details.entityName },
-  ];
-
-  if (details.oldValue && details.newValue) {
-    facts.push({ title: 'Van', value: details.oldValue });
-    facts.push({ title: 'Naar', value: details.newValue });
-  }
-
-  if (details.additionalInfo) {
-    facts.push({ title: 'Details', value: details.additionalInfo });
-  }
-
-  facts.push({ title: 'Tijdstip', value: timestamp });
-
-  // Teams Adaptive Card format
-  return {
-    "@type": "MessageCard",
-    "@context": "http://schema.org/extensions",
-    "themeColor": themeColor.replace('#', ''),
-    "summary": `${user.name} ${activityDescription}`,
-    "sections": [
-      {
-        "activityTitle": `**${user.name}** ${activityDescription}`,
-        "activitySubtitle": `Scrum Board - ${projectName}`,
-        "activityImage": user.avatar,
-        "facts": facts,
-        "markdown": true,
-      },
-    ],
+  
+  // Get emoji based on entity type
+  const entityEmoji: Record<string, string> = {
+    project: '📁',
+    sprint: '🏃',
+    story: '📖',
+    task: '✅',
+    member: '👤',
   };
+  const emoji = entityEmoji[details.entityType] || '📌';
+
+  // Build the message text
+  let text = `${emoji} **${user.name}** ${activityDescription}\n\n`;
+  text += `📁 **Project:** ${projectName}\n`;
+  text += `🏷️ **${details.entityType.charAt(0).toUpperCase() + details.entityType.slice(1)}:** ${details.entityName}\n`;
+  
+  if (details.oldValue && details.newValue) {
+    text += `🔄 **Van:** ${details.oldValue} → **Naar:** ${details.newValue}\n`;
+  }
+  
+  if (details.additionalInfo) {
+    text += `ℹ️ ${details.additionalInfo}\n`;
+  }
+  
+  text += `🕒 ${timestamp}`;
+
+  // Simple text format - works with all Teams webhook types
+  return { text };
 }
 
 /**
