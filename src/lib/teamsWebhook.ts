@@ -100,6 +100,7 @@ function createTeamsMessage(
 
 /**
  * Send a notification to Teams webhook
+ * Uses server-side API route to avoid CORS issues
  * This is a fire-and-forget operation - errors are logged but don't throw
  */
 export async function sendTeamsNotification(
@@ -117,13 +118,13 @@ export async function sendTeamsNotification(
   try {
     const message = createTeamsMessage(user, activityType, details, projectName);
     
-    // Fire and forget - don't await in production to avoid blocking
-    fetch(webhookUrl, {
+    // Use API route to avoid CORS - fire and forget
+    fetch('/api/webhook', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(message),
+      body: JSON.stringify({ webhookUrl, message }),
     }).catch((err) => {
       console.error('Teams webhook error:', err);
     });
