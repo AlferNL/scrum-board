@@ -245,6 +245,15 @@ export default function Board() {
     }
   };
 
+  // Quick status change handler for story cards
+  const handleStoryStatusChange = async (storyId: string, newStatus: StoryStatus) => {
+    try {
+      await updateStory(storyId, { status: newStatus });
+    } catch (err) {
+      console.error('Error updating story status:', err);
+    }
+  };
+
   // ============================================
   // Sprint CRUD Operations
   // ============================================
@@ -635,6 +644,7 @@ export default function Board() {
                 onEditStory={handleEditStory}
                 onEditTask={handleEditTask}
                 onAddTask={handleAddTask}
+                onStatusChange={handleStoryStatusChange}
               />
             ))}
           </div>

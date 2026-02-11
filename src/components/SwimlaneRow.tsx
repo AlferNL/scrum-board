@@ -1,6 +1,6 @@
 'use client';
 
-import { Story, Task, Column, getTasksByStatus, TaskStatus } from '@/types';
+import { Story, Task, Column, getTasksByStatus, TaskStatus, StoryStatus } from '@/types';
 import { Droppable } from '@hello-pangea/dnd';
 import { useAuth } from '@/lib/AuthContext';
 import StoryCard from './StoryCard';
@@ -12,9 +12,10 @@ interface SwimlaneRowProps {
   onEditStory?: (story: Story) => void;
   onEditTask?: (task: Task) => void;
   onAddTask?: (storyId: string) => void;
+  onStatusChange?: (storyId: string, status: StoryStatus) => void;
 }
 
-export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, onAddTask }: SwimlaneRowProps) {
+export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, onAddTask, onStatusChange }: SwimlaneRowProps) {
   const { permissions } = useAuth();
   
   return (
@@ -25,7 +26,8 @@ export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, o
           story={story} 
           columns={columns}
           onEdit={permissions.canEditStories ? onEditStory : undefined} 
-          onAddTask={permissions.canEditTasks ? onAddTask : undefined} 
+          onAddTask={permissions.canEditTasks ? onAddTask : undefined}
+          onStatusChange={permissions.canEditStories ? onStatusChange : undefined}
         />
       </div>
 

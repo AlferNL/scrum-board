@@ -1,6 +1,7 @@
 'use client';
 
-import { Story, Column, PRIORITY_CONFIG, COLUMNS, STORY_STATUS_CONFIG } from '@/types';
+import { useState, useRef, useEffect } from 'react';
+import { Story, Column, PRIORITY_CONFIG, COLUMNS, STORY_STATUS_CONFIG, StoryStatus } from '@/types';
 import Image from 'next/image';
 import { t } from '@/lib/translations';
 
@@ -9,9 +10,24 @@ interface StoryCardProps {
   columns?: Column[];
   onEdit?: (story: Story) => void;
   onAddTask?: (storyId: string) => void;
+  onStatusChange?: (storyId: string, status: StoryStatus) => void;
 }
 
-export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask }: StoryCardProps) {
+export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask, onStatusChange }: StoryCardProps) {
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(event.target as Node)) {
+        setStatusMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Calculate progress using dynamic columns
   const completeStatuses = columns.filter(col => col.countsAsComplete).map(col => col.id);
   const total = story.tasks.length;
@@ -21,6 +37,13 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask 
   
   const priorityConfig = PRIORITY_CONFIG[story.priority];
   const statusConfig = story.status ? STORY_STATUS_CONFIG[story.status] : STORY_STATUS_CONFIG.OPEN;
+
+  const handleStatusChange = (newStatus: StoryStatus) => {
+    if (onStatusChange) {
+      onStatusChange(story.id, newStatus);
+    }
+    setStatusMenuOpen(false);
+  };
 
   // Determine progress bar color based on completion
   const getProgressColor = (percentage: number) => {
@@ -44,17 +67,53 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask 
           >
             {priorityConfig.label}
           </span>
-          {/* Status Badge */}
-          <span
-            className={`
-              text-xs font-medium px-2 py-0.5 rounded-full
-              ${statusConfig.bgColor} ${statusConfig.color}
-              dark:bg-opacity-30
-            `}
-            title={t.storyStatus[story.status || 'OPEN']}
-          >
-            {statusConfig.icon}
-          </span>
+          {/* Status Badge - clickable dropdown */}
+          <div className="relative" ref={statusMenuRef}>
+            <button
+              onClick={() => onStatusChange && setStatusMenuOpen(!statusMenuOpen)}
+              className={`
+                text-xs font-medium px-2 py-0.5 rounded-full cursor-pointer
+                ${statusConfig.bgColor} ${statusConfig.color}
+                dark:bg-opacity-30
+                ${onStatusChange ? 'hover:ring-2 hover:ring-offset-1 hover:ring-blue-400 transition-all' : ''}
+              `}
+              title={onStatusChange ? `Status: ${t.storyStatus[story.status || 'OPEN']} (klik om te wijzigen)` : t.storyStatus[story.status || 'OPEN']}
+              disabled={!onStatusChange}
+            >
+              {statusConfig.icon}
+            </button>
+            
+            {/* Status Dropdown Menu */}
+            {statusMenuOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 min-w-[140px]">
+                {(Object.keys(STORY_STATUS_CONFIG) as StoryStatus[]).map((status) => {
+                  const config = STORY_STATUS_CONFIG[status];
+                  const isCurrentStatus = (story.status || 'OPEN') === status;
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(status)}
+                      className={`
+                        w-full flex items-center gap-2 px-3 py-1.5 text-left text-sm
+                        hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                        ${isCurrentStatus ? 'bg-gray-50 dark:bg-gray-700/50' : ''}
+                      `}
+                    >
+                      <span className={`${config.color}`}>{config.icon}</span>
+                      <span className={`${isCurrentStatus ? 'font-medium' : ''} text-gray-700 dark:text-gray-200`}>
+                        {t.storyStatus[status]}
+                      </span>
+                      {isCurrentStatus && (
+                        <svg className="w-4 h-4 ml-auto text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Edit Button - only show if onEdit handler is provided */}
