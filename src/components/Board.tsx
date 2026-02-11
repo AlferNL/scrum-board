@@ -101,6 +101,11 @@ export default function Board() {
 
   // Story filter state - 'ALL' shows all except ARCHIVED, use specific status or 'ARCHIVED' to filter
   const [storyStatusFilter, setStoryStatusFilter] = useState<StoryStatus | 'ALL' | 'ACTIVE'>('ACTIVE');
+  
+  // Story sort state
+  type StorySortBy = 'priority' | 'status' | 'progress' | 'tasks' | 'none';
+  const [storySortBy, setStorySortBy] = useState<StorySortBy>('none');
+  const [storySortAsc, setStorySortAsc] = useState(true);
 
   // Handle project change
   const handleProjectChange = (projectId: string) => {
@@ -583,21 +588,56 @@ export default function Board() {
               <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 {t.board.userStories}
               </h2>
-              {/* Story Status Filter */}
-              <select
-                value={storyStatusFilter}
-                onChange={(e) => setStoryStatusFilter(e.target.value as StoryStatus | 'ALL' | 'ACTIVE')}
-                className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
-                           bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300
-                           focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                title={t.filter.label}
-              >
-                <option value="ACTIVE">{t.filter.active}</option>
-                <option value="ALL">{t.filter.all}</option>
-                {(Object.keys(STORY_STATUS_CONFIG) as StoryStatus[]).map((status) => (
-                  <option key={status} value={status}>{t.storyStatus[status]}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                {/* Story Status Filter */}
+                <select
+                  value={storyStatusFilter}
+                  onChange={(e) => setStoryStatusFilter(e.target.value as StoryStatus | 'ALL' | 'ACTIVE')}
+                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300
+                             focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  title={t.filter.label}
+                >
+                  <option value="ACTIVE">{t.filter.active}</option>
+                  <option value="ALL">{t.filter.all}</option>
+                  {(Object.keys(STORY_STATUS_CONFIG) as StoryStatus[]).map((status) => (
+                    <option key={status} value={status}>{t.storyStatus[status]}</option>
+                  ))}
+                </select>
+                {/* Story Sort */}
+                <select
+                  value={storySortBy}
+                  onChange={(e) => setStorySortBy(e.target.value as StorySortBy)}
+                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300
+                             focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  title={t.sort.label}
+                >
+                  <option value="none">{t.sort.none}</option>
+                  <option value="priority">{t.sort.priority}</option>
+                  <option value="status">{t.sort.status}</option>
+                  <option value="progress">{t.sort.progress}</option>
+                  <option value="tasks">{t.sort.tasks}</option>
+                </select>
+                {/* Sort Direction */}
+                {storySortBy !== 'none' && (
+                  <button
+                    onClick={() => setStorySortAsc(!storySortAsc)}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
+                    title={storySortAsc ? t.sort.ascending : t.sort.descending}
+                  >
+                    {storySortAsc ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -637,6 +677,39 @@ export default function Board() {
                 if (storyStatusFilter === 'ALL') return true;
                 if (storyStatusFilter === 'ACTIVE') return storyStatus !== 'ARCHIVED';
                 return storyStatus === storyStatusFilter;
+              })
+              .sort((a, b) => {
+                if (storySortBy === 'none') return 0;
+                
+                let comparison = 0;
+                const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+                const statusOrder = { OPEN: 0, IN_PROGRESS: 1, DONE: 2, ARCHIVED: 3 };
+                
+                // Calculate progress for both stories
+                const completeStatuses = currentColumns.filter(col => col.countsAsComplete).map(col => col.id);
+                const getProgress = (story: Story) => {
+                  const total = story.tasks.length;
+                  if (total === 0) return 0;
+                  const completed = story.tasks.filter(t => completeStatuses.includes(t.status)).length;
+                  return completed / total;
+                };
+                
+                switch (storySortBy) {
+                  case 'priority':
+                    comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+                    break;
+                  case 'status':
+                    comparison = statusOrder[a.status || 'OPEN'] - statusOrder[b.status || 'OPEN'];
+                    break;
+                  case 'progress':
+                    comparison = getProgress(a) - getProgress(b);
+                    break;
+                  case 'tasks':
+                    comparison = a.tasks.length - b.tasks.length;
+                    break;
+                }
+                
+                return storySortAsc ? comparison : -comparison;
               })
               .map((story) => (
               <SwimlaneRow 

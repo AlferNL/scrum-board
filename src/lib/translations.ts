@@ -149,6 +149,18 @@ export const t = {
     showArchived: 'Gearchiveerd Tonen',
   },
 
+  // Story Sort
+  sort: {
+    label: 'Sorteren',
+    none: '- Sorteren -',
+    priority: 'Prioriteit',
+    status: 'Status',
+    progress: 'Voortgang',
+    tasks: 'Aantal Taken',
+    ascending: 'Oplopend',
+    descending: 'Aflopend',
+  },
+
   // Sprints
   sprint: {
     title: 'Sprints',
