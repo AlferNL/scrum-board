@@ -23,6 +23,7 @@ export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, o
       <div className="flex-shrink-0">
         <StoryCard 
           story={story} 
+          columns={columns}
           onEdit={permissions.canEditStories ? onEditStory : undefined} 
           onAddTask={permissions.canEditTasks ? onAddTask : undefined} 
         />

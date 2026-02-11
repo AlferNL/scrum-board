@@ -1,17 +1,24 @@
 'use client';
 
-import { Story, calculateStoryProgress, PRIORITY_CONFIG } from '@/types';
+import { Story, Column, PRIORITY_CONFIG, COLUMNS } from '@/types';
 import Image from 'next/image';
 import { t } from '@/lib/translations';
 
 interface StoryCardProps {
   story: Story;
+  columns?: Column[];
   onEdit?: (story: Story) => void;
   onAddTask?: (storyId: string) => void;
 }
 
-export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) {
-  const progress = calculateStoryProgress(story);
+export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask }: StoryCardProps) {
+  // Calculate progress using dynamic columns
+  const completeStatuses = columns.filter(col => col.countsAsComplete).map(col => col.id);
+  const total = story.tasks.length;
+  const completed = story.tasks.filter(task => completeStatuses.includes(task.status)).length;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const progress = { total, completed, percentage };
+  
   const priorityConfig = PRIORITY_CONFIG[story.priority];
 
   // Determine progress bar color based on completion
