@@ -13,9 +13,15 @@ export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'done';
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 
 /**
- * User Roles for access control
+ * User Roles for access control (global)
  */
 export type UserRole = 'ADMIN' | 'PRODUCT_OWNER' | 'SCRUM_MASTER' | 'MEMBER' | 'VIEWER';
+
+/**
+ * Project Roles for project-specific access control
+ * Note: ADMIN is global only, not assignable per project
+ */
+export type ProjectRole = 'PRODUCT_OWNER' | 'SCRUM_MASTER' | 'MEMBER' | 'VIEWER';
 
 /**
  * User Status for approval workflow
@@ -47,10 +53,20 @@ export const STORY_STATUS_CONFIG: Record<StoryStatus, { label: string; color: st
 };
 
 /**
- * Role configuration with labels and colors
+ * Role configuration with labels and colors (global roles)
  */
 export const USER_ROLE_CONFIG: Record<UserRole, { label: string; color: string; bgColor: string }> = {
   ADMIN: { label: 'Admin', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  PRODUCT_OWNER: { label: 'Product Owner', color: 'text-purple-700', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+  SCRUM_MASTER: { label: 'Scrum Master', color: 'text-teal-700', bgColor: 'bg-teal-100 dark:bg-teal-900/30' },
+  MEMBER: { label: 'Lid', color: 'text-blue-700', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  VIEWER: { label: 'Kijker', color: 'text-gray-700', bgColor: 'bg-gray-100 dark:bg-gray-700' },
+};
+
+/**
+ * Project Role configuration (same styling as user roles, but without ADMIN)
+ */
+export const PROJECT_ROLE_CONFIG: Record<ProjectRole, { label: string; color: string; bgColor: string }> = {
   PRODUCT_OWNER: { label: 'Product Owner', color: 'text-purple-700', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
   SCRUM_MASTER: { label: 'Scrum Master', color: 'text-teal-700', bgColor: 'bg-teal-100 dark:bg-teal-900/30' },
   MEMBER: { label: 'Lid', color: 'text-blue-700', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
@@ -126,6 +142,19 @@ export interface Sprint {
 }
 
 /**
+ * Project Member with role - represents a user's membership and role in a specific project
+ */
+export interface ProjectMember {
+  id: string;
+  projectId: string;
+  userId: string;
+  user: User;
+  role: ProjectRole;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
  * Project interface - represents a project containing multiple sprints
  */
 export interface Project {
@@ -134,6 +163,7 @@ export interface Project {
   description?: string;
   color: string; // Hex color for project branding
   teamMembers: User[];
+  members?: ProjectMember[]; // Project members with roles
   sprints: Sprint[];
   columns?: Column[]; // Custom columns for this project
   createdAt: Date;

@@ -100,6 +100,14 @@ export const t = {
     projectColor: 'Project Kleur',
     selectSprint: 'Selecteer Sprint',
     allSprints: 'Alle Sprints',
+    // Project members
+    projectMembers: 'Projectleden',
+    addMember: 'Lid Toevoegen',
+    removeMember: 'Lid Verwijderen',
+    memberRole: 'Rol',
+    noMembers: 'Geen leden aan dit project toegevoegd',
+    selectUser: 'Selecteer Gebruiker',
+    selectRole: 'Selecteer Rol',
   },
 
   // Menu

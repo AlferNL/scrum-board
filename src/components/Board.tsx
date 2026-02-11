@@ -18,7 +18,7 @@ import Link from 'next/link';
 
 export default function Board() {
   // User context for permissions
-  const { currentUser, permissions } = useAuth();
+  const { currentUser, getPermissionsForProject } = useAuth();
   
   // Supabase data hook
   const {
@@ -40,6 +40,9 @@ export default function Board() {
     updateTask,
     deleteTask: deleteTaskDb,
     updateTaskStatus,
+    addProjectMember,
+    updateProjectMemberRole,
+    removeProjectMember,
   } = useSupabaseData();
 
   // Project and Sprint selection state
@@ -74,6 +77,9 @@ export default function Board() {
   // Derived state for current project and sprint
   const currentProject = projects.find(p => p.id === currentProjectId) || projects[0];
   const currentSprint = currentProject?.sprints.find(s => s.id === currentSprintId) || currentProject?.sprints[0];
+  
+  // Get project-specific permissions
+  const permissions = getPermissionsForProject(currentProject);
   
   // Get columns for current project (use custom columns or default)
   const currentColumns = currentProject?.columns && currentProject.columns.length > 0 
@@ -704,6 +710,9 @@ export default function Board() {
         onSave={handleSaveProject}
         onDelete={handleDeleteProject}
         users={users}
+        onAddMember={addProjectMember}
+        onUpdateMemberRole={updateProjectMemberRole}
+        onRemoveMember={removeProjectMember}
       />
 
       {/* Column Settings Modal */}

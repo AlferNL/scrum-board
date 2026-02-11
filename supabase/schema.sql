@@ -85,9 +85,14 @@ CREATE TABLE IF NOT EXISTS tasks (
 -- Junction tables for team members
 -- ============================================
 CREATE TABLE IF NOT EXISTS project_members (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  PRIMARY KEY (project_id, user_id)
+  role TEXT NOT NULL DEFAULT 'MEMBER',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(project_id, user_id),
+  CONSTRAINT valid_project_role CHECK (role IN ('PRODUCT_OWNER', 'SCRUM_MASTER', 'MEMBER', 'VIEWER'))
 );
 
 CREATE TABLE IF NOT EXISTS sprint_members (

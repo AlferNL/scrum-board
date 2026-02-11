@@ -1,10 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import { User, UserRole, UserStatus } from '@/types';
-import { getPermissions, Permissions } from '@/lib/permissions';
+import { User, UserRole, UserStatus, Project, ProjectRole } from '@/types';
+import { getPermissions, Permissions, getProjectPermissions } from '@/lib/permissions';
 
 interface AuthContextType {
   // Supabase Auth state
@@ -28,6 +28,10 @@ interface AuthContextType {
   isPending: boolean;
   isApproved: boolean;
   isRejected: boolean;
+
+  // Project-specific permissions
+  getPermissionsForProject: (project: Project | null | undefined) => Permissions;
+  getUserProjectRole: (project: Project | null | undefined) => ProjectRole | undefined;
 }
 
 const defaultPermissions = getPermissions(undefined);
@@ -45,6 +49,8 @@ const AuthContext = createContext<AuthContextType>({
   isPending: false,
   isApproved: false,
   isRejected: false,
+  getPermissionsForProject: () => defaultPermissions,
+  getUserProjectRole: () => undefined,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -233,6 +239,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isApproved = currentUser?.status === 'APPROVED';
   const isRejected = currentUser?.status === 'REJECTED';
 
+  // Get user's role in a specific project
+  const getUserProjectRole = useCallback((project: Project | null | undefined): ProjectRole | undefined => {
+    if (!currentUser || !project?.members) return undefined;
+    const membership = project.members.find(m => m.userId === currentUser.id);
+    return membership?.role;
+  }, [currentUser]);
+
+  // Get permissions for a specific project based on project role
+  const getPermissionsForProject = useCallback((project: Project | null | undefined): Permissions => {
+    if (!currentUser) return defaultPermissions;
+    
+    // ADMIN always has full permissions
+    if (currentUser.userRole === 'ADMIN') {
+      return getPermissions('ADMIN');
+    }
+
+    // Get project-specific role
+    const projectRole = getUserProjectRole(project);
+    
+    // Use project permissions
+    return getProjectPermissions(currentUser.userRole, projectRole);
+  }, [currentUser, getUserProjectRole]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -248,6 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isPending,
         isApproved,
         isRejected,
+        getPermissionsForProject,
+        getUserProjectRole,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import { UserRole } from '@/types';
+import { UserRole, ProjectRole } from '@/types';
 
 /**
  * Permission checking utilities for role-based access control
@@ -105,4 +105,37 @@ export function canPerformAction(
 ): boolean {
   const permissions = getPermissions(role);
   return permissions[action] as boolean;
+}
+
+/**
+ * Get permissions based on global role AND project-specific role
+ * - ADMIN: Always full permissions (global admin)
+ * - Others: Use project role if available, otherwise fall back to global role
+ */
+export function getProjectPermissions(
+  globalRole: UserRole | undefined,
+  projectRole: ProjectRole | undefined
+): Permissions {
+  // ADMIN is always global - full permissions everywhere
+  if (globalRole === 'ADMIN') {
+    return getPermissions('ADMIN');
+  }
+
+  // Use project-specific role if available
+  if (projectRole) {
+    // Convert ProjectRole to UserRole for the getPermissions function
+    // (ProjectRole doesn't include ADMIN, so this is safe)
+    return getPermissions(projectRole as UserRole);
+  }
+
+  // If user has no project role, they are effectively a viewer for this project
+  // unless they have a global role that grants access
+  if (globalRole && globalRole !== 'VIEWER') {
+    // User has a global role but no project-specific role
+    // Default to VIEWER for this project
+    return getPermissions('VIEWER');
+  }
+
+  // No role - no permissions
+  return getPermissions(undefined);
 }

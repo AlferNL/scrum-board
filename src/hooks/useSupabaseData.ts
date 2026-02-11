@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Project, Sprint, Story, Task, User, UserRole, UserStatus } from '@/types';
+import { Project, Sprint, Story, Task, User, UserRole, UserStatus, ProjectMember, ProjectRole } from '@/types';
 
 // ============================================
 // Transform database data to app types
@@ -74,9 +74,21 @@ function transformSprint(dbSprint: any): Sprint {
 }
 
 function transformProject(dbProject: any): Project {
-  const teamMembers = (dbProject.project_members || [])
-    .map((pm: any) => pm.users ? transformUser(pm.users) : null)
-    .filter(Boolean);
+  // Transform project members with their roles
+  const members: ProjectMember[] = (dbProject.project_members || [])
+    .filter((pm: any) => pm.users)
+    .map((pm: any) => ({
+      id: pm.id,
+      projectId: dbProject.id,
+      userId: pm.user_id,
+      user: transformUser(pm.users),
+      role: (pm.role as ProjectRole) || 'MEMBER',
+      createdAt: new Date(pm.created_at),
+      updatedAt: new Date(pm.updated_at),
+    }));
+
+  // Also keep teamMembers for backwards compatibility
+  const teamMembers = members.map(m => m.user);
 
   // Parse columns from JSON if present
   let columns = undefined;
@@ -96,6 +108,7 @@ function transformProject(dbProject: any): Project {
     description: dbProject.description,
     color: dbProject.color,
     teamMembers,
+    members,
     sprints: (dbProject.sprints || []).map(transformSprint),
     columns,
     createdAt: new Date(dbProject.created_at),
@@ -134,7 +147,11 @@ export function useSupabaseData() {
         .select(`
           *,
           project_members (
+            id,
             user_id,
+            role,
+            created_at,
+            updated_at,
             users (*)
           ),
           sprints (
@@ -379,6 +396,48 @@ export function useSupabaseData() {
   };
 
   // ============================================
+  // Project Member CRUD
+  // ============================================
+
+  const addProjectMember = async (projectId: string, userId: string, role: ProjectRole) => {
+    const { error } = await supabase
+      .from('project_members')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        role: role,
+      });
+
+    if (error) throw error;
+    await fetchData();
+  };
+
+  const updateProjectMemberRole = async (projectId: string, userId: string, role: ProjectRole) => {
+    const { error } = await supabase
+      .from('project_members')
+      .update({
+        role: role,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('project_id', projectId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    await fetchData();
+  };
+
+  const removeProjectMember = async (projectId: string, userId: string) => {
+    const { error } = await supabase
+      .from('project_members')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    await fetchData();
+  };
+
+  // ============================================
   // Task CRUD
   // ============================================
 
@@ -470,6 +529,11 @@ export function useSupabaseData() {
     createStory,
     updateStory,
     deleteStory,
+
+    // Project Member CRUD
+    addProjectMember,
+    updateProjectMemberRole,
+    removeProjectMember,
     
     // Task CRUD
     createTask,

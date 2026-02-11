@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Project, User } from '@/types';
+import { Project, User, ProjectRole, PROJECT_ROLE_CONFIG } from '@/types';
 import { t } from '@/lib/translations';
 import Image from 'next/image';
 
@@ -12,6 +12,10 @@ interface ProjectModalProps {
   onSave: (project: Partial<Project>) => void;
   onDelete?: (projectId: string) => void;
   users?: User[];
+  // Project member management
+  onAddMember?: (projectId: string, userId: string, role: ProjectRole) => Promise<void>;
+  onUpdateMemberRole?: (projectId: string, userId: string, role: ProjectRole) => Promise<void>;
+  onRemoveMember?: (projectId: string, userId: string) => Promise<void>;
 }
 
 const PROJECT_COLORS = [
@@ -32,6 +36,9 @@ export default function ProjectModal({
   onSave,
   onDelete,
   users = [],
+  onAddMember,
+  onUpdateMemberRole,
+  onRemoveMember,
 }: ProjectModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +46,8 @@ export default function ProjectModal({
     color: PROJECT_COLORS[0],
     teamMemberIds: [] as string[],
   });
+  const [newMemberUserId, setNewMemberUserId] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState<ProjectRole>('MEMBER');
 
   const isEditing = !!project;
 
@@ -91,6 +100,34 @@ export default function ProjectModal({
         : [...prev.teamMemberIds, userId],
     }));
   };
+
+  // Handler for adding a new member with role
+  const handleAddMember = async () => {
+    if (project && newMemberUserId && onAddMember) {
+      await onAddMember(project.id, newMemberUserId, newMemberRole);
+      setNewMemberUserId('');
+      setNewMemberRole('MEMBER');
+    }
+  };
+
+  // Handler for changing a member's role
+  const handleRoleChange = async (userId: string, role: ProjectRole) => {
+    if (project && onUpdateMemberRole) {
+      await onUpdateMemberRole(project.id, userId, role);
+    }
+  };
+
+  // Handler for removing a member
+  const handleRemoveMember = async (userId: string) => {
+    if (project && onRemoveMember) {
+      await onRemoveMember(project.id, userId);
+    }
+  };
+
+  // Get users not yet added to the project (for adding new members)
+  const availableUsers = isEditing
+    ? users.filter(u => !project?.members?.some(m => m.userId === u.id))
+    : [];
 
   if (!isOpen) return null;
 
@@ -176,43 +213,133 @@ export default function ProjectModal({
             </div>
           </div>
 
-          {/* Team Members */}
+          {/* Team Members / Project Members */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.modal.teamMembers}
+              {isEditing ? t.modal.projectMembers : t.modal.teamMembers}
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {users.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => toggleTeamMember(user.id)}
-                  className={`flex items-center gap-2 p-2 rounded-lg border transition-colors text-left
-                    ${formData.teamMemberIds.includes(user.id)
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                >
-                  <Image
-                    src={user.avatar}
-                    alt={user.name}
-                    width={32}
-                    height={32}
-                    unoptimized
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.role}</p>
+            
+            {isEditing && project?.members ? (
+              // Role-based member management for existing projects
+              <div className="space-y-3">
+                {/* Current Members List */}
+                {project.members.length > 0 ? (
+                  <div className="space-y-2">
+                    {project.members.map((member) => (
+                      <div
+                        key={member.userId}
+                        className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50"
+                      >
+                        <Image
+                          src={member.user.avatar}
+                          alt={member.user.name}
+                          width={32}
+                          height={32}
+                          unoptimized
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{member.user.name}</p>
+                        </div>
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.userId, e.target.value as ProjectRole)}
+                          className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-500 
+                                     bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200
+                                     focus:ring-1 focus:ring-blue-500"
+                        >
+                          {(Object.keys(PROJECT_ROLE_CONFIG) as ProjectRole[]).map((role) => (
+                            <option key={role} value={role}>{PROJECT_ROLE_CONFIG[role].label}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(member.userId)}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded"
+                          title={t.modal.removeMember}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  {formData.teamMemberIds.includes(user.id) && (
-                    <svg className="w-4 h-4 text-blue-500 ml-auto flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic py-2">{t.modal.noMembers}</p>
+                )}
+
+                {/* Add New Member */}
+                {availableUsers.length > 0 && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <select
+                      value={newMemberUserId}
+                      onChange={(e) => setNewMemberUserId(e.target.value)}
+                      className="flex-1 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-500 
+                                 bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200"
+                    >
+                      <option value="">{t.modal.selectUser}</option>
+                      {availableUsers.map((user) => (
+                        <option key={user.id} value={user.id}>{user.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={newMemberRole}
+                      onChange={(e) => setNewMemberRole(e.target.value as ProjectRole)}
+                      className="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-500 
+                                 bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200"
+                    >
+                      {(Object.keys(PROJECT_ROLE_CONFIG) as ProjectRole[]).map((role) => (
+                        <option key={role} value={role}>{PROJECT_ROLE_CONFIG[role].label}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleAddMember}
+                      disabled={!newMemberUserId}
+                      className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 
+                                 disabled:dark:bg-gray-600 text-white rounded transition-colors"
+                    >
+                      {t.modal.addMember}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Simple selection for new projects
+              <div className="grid grid-cols-2 gap-2">
+                {users.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => toggleTeamMember(user.id)}
+                    className={`flex items-center gap-2 p-2 rounded-lg border transition-colors text-left
+                      ${formData.teamMemberIds.includes(user.id)
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      }`}
+                  >
+                    <Image
+                      src={user.avatar}
+                      alt={user.name}
+                      width={32}
+                      height={32}
+                      unoptimized
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.role}</p>
+                    </div>
+                    {formData.teamMemberIds.includes(user.id) && (
+                      <svg className="w-4 h-4 text-blue-500 ml-auto flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
