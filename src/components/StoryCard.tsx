@@ -129,7 +129,7 @@ export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) 
 
         {/* Story ID */}
         <span className="text-xs text-gray-400 dark:text-gray-500 font-mono uppercase">
-          {story.id}
+          {story.id.substring(0, 8)}
         </span>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column } from '@/types';
+import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column, getCompleteStatuses } from '@/types';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/lib/AuthContext';
 import { t } from '@/lib/translations';
@@ -354,9 +354,10 @@ export default function Board() {
   };
 
   // Calculate sprint statistics
+  const completeStatuses = getCompleteStatuses();
   const totalTasks = currentSprint?.stories.reduce((acc, story) => acc + story.tasks.length, 0) || 0;
   const completedTasks = currentSprint?.stories.reduce(
-    (acc, story) => acc + story.tasks.filter((t) => t.status === 'done').length,
+    (acc, story) => acc + story.tasks.filter((t) => completeStatuses.includes(t.status)).length,
     0
   ) || 0;
   const totalStories = currentSprint?.stories.length || 0;

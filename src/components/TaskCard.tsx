@@ -103,7 +103,7 @@ export default function TaskCard({ task, index, onEdit, isDragDisabled = false }
           {/* Task ID Badge */}
           <div className="mt-2 pt-2 border-t border-gray-50 dark:border-gray-700 flex items-center justify-between">
             <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-              {task.id.toUpperCase()}
+              {task.id.substring(0, 8).toUpperCase()}
             </span>
             {/* Edit indicator - only show if editing is allowed */}
             {onEdit && (

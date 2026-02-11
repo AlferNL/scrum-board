@@ -131,6 +131,7 @@ export interface Column {
   title: string;
   color: string; // Tailwind color class
   bgColor: string; // Background color class
+  countsAsComplete?: boolean; // If true, tasks in this column count as completed
 }
 
 /**
@@ -151,24 +152,28 @@ export const COLUMNS: Column[] = [
     title: 'Te Doen',
     color: 'bg-slate-500',
     bgColor: 'bg-slate-50',
+    countsAsComplete: false,
   },
   {
     id: 'in-progress',
     title: 'In Uitvoering',
     color: 'bg-blue-500',
     bgColor: 'bg-blue-50',
+    countsAsComplete: false,
   },
   {
     id: 'review',
     title: 'Review',
     color: 'bg-amber-500',
     bgColor: 'bg-amber-50',
+    countsAsComplete: false,
   },
   {
     id: 'done',
     title: 'Voltooid',
     color: 'bg-green-500',
     bgColor: 'bg-green-50',
+    countsAsComplete: true,
   },
 ];
 
@@ -186,11 +191,19 @@ export interface StoryProgress {
 }
 
 /**
+ * Get statuses that count as complete
+ */
+export function getCompleteStatuses(): TaskStatus[] {
+  return COLUMNS.filter((col) => col.countsAsComplete).map((col) => col.id);
+}
+
+/**
  * Calculate story completion progress
  */
 export function calculateStoryProgress(story: Story): StoryProgress {
   const total = story.tasks.length;
-  const completed = story.tasks.filter((task) => task.status === 'done').length;
+  const completeStatuses = getCompleteStatuses();
+  const completed = story.tasks.filter((task) => completeStatuses.includes(task.status)).length;
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return { total, completed, percentage };
