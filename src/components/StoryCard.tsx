@@ -104,8 +104,8 @@ export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) 
         </button>
       )}
 
-      {/* Footer: Assignee & Story ID */}
-      <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      {/* Footer: Assignee */}
+      <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
         {/* Assignee */}
         {story.assignee ? (
           <div className="flex items-center gap-2">
@@ -117,7 +117,7 @@ export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) 
               unoptimized
               className="w-7 h-7 rounded-full ring-2 ring-gray-100 dark:ring-gray-700"
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[120px]">
+            <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
               {story.assignee.name}
             </span>
           </div>
@@ -126,11 +126,6 @@ export default function StoryCard({ story, onEdit, onAddTask }: StoryCardProps) 
             {t.common.unassigned}
           </span>
         )}
-
-        {/* Story ID */}
-        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono uppercase">
-          {story.id.substring(0, 8)}
-        </span>
       </div>
     </div>
   );
