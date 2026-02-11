@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { USER_ROLE_CONFIG } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function UserSelector() {
   const { currentUser, permissions, signOut } = useAuth();
@@ -148,6 +149,19 @@ export default function UserSelector() {
                   )}
                 </div>
               </div>
+
+              {/* Profile Link */}
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 
+                           transition-colors text-gray-700 dark:text-gray-300 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Mijn Profiel
+              </Link>
 
               {/* Logout Button */}
               <button
