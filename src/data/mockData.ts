@@ -93,6 +93,7 @@ export const mockStories: Story[] = [
     description: 'Implement complete user authentication with login, registration, and password reset functionality.',
     storyPoints: 13,
     priority: 'high',
+    status: 'OPEN',
     assignee: mockUsers[0],
     acceptanceCriteria: [
       'Users can register with email and password',
@@ -118,6 +119,7 @@ export const mockStories: Story[] = [
     description: 'Create an interactive dashboard with charts showing key performance metrics and user analytics.',
     storyPoints: 8,
     priority: 'medium',
+    status: 'IN_PROGRESS',
     assignee: mockUsers[3],
     acceptanceCriteria: [
       'Display real-time user statistics',
@@ -142,6 +144,7 @@ export const mockStories: Story[] = [
     description: 'Build a real-time notification system with in-app alerts and email notifications.',
     storyPoints: 5,
     priority: 'medium',
+    status: 'IN_PROGRESS',
     assignee: mockUsers[1],
     acceptanceCriteria: [
       'Users receive in-app notifications',
@@ -165,6 +168,7 @@ export const mockStories: Story[] = [
     description: 'Allow users to view and edit their profile information including avatar upload.',
     storyPoints: 5,
     priority: 'low',
+    status: 'DONE',
     assignee: mockUsers[0],
     acceptanceCriteria: [
       'Users can view their profile',
@@ -193,6 +197,7 @@ const mockStoriesSprint2: Story[] = [
     description: 'Allow users to export their data in various formats (CSV, PDF, Excel).',
     storyPoints: 8,
     priority: 'high',
+    status: 'OPEN',
     assignee: mockUsers[3],
     acceptanceCriteria: [
       'Export to CSV works',
@@ -219,6 +224,7 @@ const mockStoriesMobile: Story[] = [
     description: 'Setup React Native project with navigation and theming.',
     storyPoints: 5,
     priority: 'high',
+    status: 'IN_PROGRESS',
     assignee: mockUsers[0],
     acceptanceCriteria: [
       'Project initialised with Expo',
@@ -240,6 +246,7 @@ const mockStoriesMobile: Story[] = [
     description: 'Build login and registration screens for mobile app.',
     storyPoints: 8,
     priority: 'high',
+    status: 'OPEN',
     assignee: mockUsers[0],
     acceptanceCriteria: [
       'Login screen designed',
