@@ -1,9 +1,9 @@
 'use client';
 
-import { Sprint, Project, User } from '@/types';
+import { Sprint, Project } from '@/types';
 import { t } from '@/lib/translations';
 import { useTheme } from '@/lib/ThemeContext';
-import { useUser } from '@/lib/UserContext';
+import { useAuth } from '@/lib/AuthContext';
 import ProjectSprintSelector from './ProjectSprintSelector';
 import UserSelector from './UserSelector';
 import Link from 'next/link';
@@ -15,7 +15,6 @@ interface BoardHeaderProps {
   totalTasks: number;
   completedTasks: number;
   totalStoryPoints: number;
-  users: User[];
   onAddStory?: () => void;
   onProjectChange: (projectId: string) => void;
   onSprintChange: (sprintId: string) => void;
@@ -32,7 +31,6 @@ export default function BoardHeader({
   totalTasks,
   completedTasks,
   totalStoryPoints,
-  users,
   onAddStory,
   onProjectChange,
   onSprintChange,
@@ -42,7 +40,7 @@ export default function BoardHeader({
   onEditProject,
 }: BoardHeaderProps) {
   const { theme, toggleTheme, isDark } = useTheme();
-  const { permissions } = useUser();
+  const { permissions } = useAuth();
   const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Format dates in Dutch
@@ -137,7 +135,7 @@ export default function BoardHeader({
             )}
 
             {/* User Selector */}
-            <UserSelector users={users} />
+            <UserSelector />
 
             {/* Sprint Status Badge */}
             {sprint.isActive && (

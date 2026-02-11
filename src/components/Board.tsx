@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column } from '@/types';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useUser } from '@/lib/UserContext';
+import { useAuth } from '@/lib/AuthContext';
 import { t } from '@/lib/translations';
 import SwimlaneRow from './SwimlaneRow';
 import BoardHeader from './BoardHeader';
@@ -18,7 +18,7 @@ import Link from 'next/link';
 
 export default function Board() {
   // User context for permissions
-  const { currentUser, permissions } = useUser();
+  const { currentUser, permissions } = useAuth();
   
   // Supabase data hook
   const {
@@ -543,7 +543,6 @@ export default function Board() {
         totalTasks={totalTasks}
         completedTasks={completedTasks}
         totalStoryPoints={totalStoryPoints}
-        users={users}
         onAddStory={permissions.canEditTasks ? handleAddStory : undefined}
         onProjectChange={handleProjectChange}
         onSprintChange={handleSprintChange}
