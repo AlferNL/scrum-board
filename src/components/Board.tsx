@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { Sprint, Story, Task, TaskStatus, COLUMNS, Project } from '@/types';
+import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column } from '@/types';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { t } from '@/lib/translations';
 import SwimlaneRow from './SwimlaneRow';
@@ -11,6 +11,7 @@ import TaskModal from './TaskModal';
 import StoryModal from './StoryModal';
 import SprintModal from './SprintModal';
 import ProjectModal from './ProjectModal';
+import ColumnSettingsModal from './ColumnSettingsModal';
 
 export default function Board() {
   // Supabase data hook
@@ -50,16 +51,35 @@ export default function Board() {
       }
     }
   }, [projects, currentProjectId]);
+
+  // Update sprint selection when project's sprints change (e.g., new sprint created)
+  useEffect(() => {
+    if (currentProjectId) {
+      const project = projects.find(p => p.id === currentProjectId);
+      if (project && project.sprints.length > 0 && !currentSprintId) {
+        const activeSprint = project.sprints.find(s => s.isActive) || project.sprints[0];
+        if (activeSprint) {
+          setCurrentSprintId(activeSprint.id);
+        }
+      }
+    }
+  }, [projects, currentProjectId, currentSprintId]);
   
   // Derived state for current project and sprint
   const currentProject = projects.find(p => p.id === currentProjectId) || projects[0];
   const currentSprint = currentProject?.sprints.find(s => s.id === currentSprintId) || currentProject?.sprints[0];
+  
+  // Get columns for current project (use custom columns or default)
+  const currentColumns = currentProject?.columns && currentProject.columns.length > 0 
+    ? currentProject.columns 
+    : COLUMNS;
   
   // Modal states
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [sprintModalOpen, setSprintModalOpen] = useState(false);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
@@ -256,6 +276,11 @@ export default function Board() {
     setProjectModalOpen(true);
   };
 
+  const handleEditProject = () => {
+    setEditingProject(currentProject);
+    setProjectModalOpen(true);
+  };
+
   const handleSaveProject = async (projectData: Partial<Project>) => {
     setSaving(true);
     try {
@@ -291,6 +316,19 @@ export default function Board() {
       }
     } catch (err) {
       console.error('Error deleting project:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle saving column settings
+  const handleSaveColumns = async (columns: Column[]) => {
+    if (!currentProject) return;
+    setSaving(true);
+    try {
+      await updateProject(currentProject.id, { columns });
+    } catch (err) {
+      console.error('Error saving columns:', err);
     } finally {
       setSaving(false);
     }
@@ -339,8 +377,8 @@ export default function Board() {
     );
   }
 
-  // Empty state - no projects
-  if (!currentProject || !currentSprint) {
+  // Empty state - no projects at all
+  if (!currentProject) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
@@ -358,6 +396,93 @@ export default function Board() {
           </button>
         </div>
         
+        <ProjectModal
+          project={editingProject}
+          isOpen={projectModalOpen}
+          onClose={() => {
+            setProjectModalOpen(false);
+            setEditingProject(null);
+          }}
+          onSave={handleSaveProject}
+          onDelete={handleDeleteProject}
+          users={users}
+        />
+      </div>
+    );
+  }
+
+  // Empty state - project exists but has no sprints
+  if (!currentSprint) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+        {/* Header with project selector */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div 
+                className="w-4 h-4 rounded-full" 
+                style={{ backgroundColor: currentProject.color }}
+              />
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                {currentProject.name}
+              </h1>
+              {projects.length > 1 && (
+                <select
+                  value={currentProjectId}
+                  onChange={(e) => handleProjectChange(e.target.value)}
+                  className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <button
+              onClick={handleAddProject}
+              className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+            >
+              + Nieuw Project
+            </button>
+          </div>
+        </div>
+
+        {/* Empty sprint state */}
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+          <div className="text-center">
+            <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              Geen sprints in dit project
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Maak een sprint aan om te beginnen met het plannen van werk.
+            </p>
+            <button
+              onClick={handleAddSprint}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              {t.menu.newSprint}
+            </button>
+          </div>
+        </div>
+        
+        <SprintModal
+          sprint={editingSprint}
+          projectId={currentProject.id}
+          isOpen={sprintModalOpen}
+          onClose={() => {
+            setSprintModalOpen(false);
+            setEditingSprint(null);
+          }}
+          onSave={handleSaveSprint}
+          onDelete={handleDeleteSprint}
+          users={users}
+        />
+
         <ProjectModal
           project={editingProject}
           isOpen={projectModalOpen}
@@ -397,6 +522,7 @@ export default function Board() {
         onEditSprint={handleEditSprint}
         onNewSprint={handleAddSprint}
         onNewProject={handleAddProject}
+        onEditProject={handleEditProject}
       />
 
       {/* Main Board Area */}
@@ -412,7 +538,7 @@ export default function Board() {
 
           {/* Column Headers */}
           <div className="flex-1 flex gap-3">
-            {COLUMNS.map((column) => (
+            {currentColumns.map((column) => (
               <div key={column.id} className="flex-1 min-w-[180px]">
                 <div className="flex items-center gap-2 px-2">
                   <div className={`w-3 h-3 rounded-full ${column.color}`} />
@@ -422,6 +548,17 @@ export default function Board() {
                 </div>
               </div>
             ))}
+            {/* Column Settings Button */}
+            <button
+              onClick={() => setColumnSettingsOpen(true)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="Kolommen beheren"
+            >
+              <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -431,7 +568,8 @@ export default function Board() {
             {currentSprint.stories.map((story) => (
               <SwimlaneRow 
                 key={story.id} 
-                story={story} 
+                story={story}
+                columns={currentColumns}
                 onEditStory={handleEditStory}
                 onEditTask={handleEditTask}
                 onAddTask={handleAddTask}
@@ -505,6 +643,14 @@ export default function Board() {
         onSave={handleSaveProject}
         onDelete={handleDeleteProject}
         users={users}
+      />
+
+      {/* Column Settings Modal */}
+      <ColumnSettingsModal
+        columns={currentColumns}
+        isOpen={columnSettingsOpen}
+        onClose={() => setColumnSettingsOpen(false)}
+        onSave={handleSaveColumns}
       />
     </div>
   );

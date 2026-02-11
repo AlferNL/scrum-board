@@ -18,6 +18,7 @@ interface BoardHeaderProps {
   onEditSprint: () => void;
   onNewSprint: () => void;
   onNewProject: () => void;
+  onEditProject: () => void;
 }
 
 export default function BoardHeader({
@@ -33,6 +34,7 @@ export default function BoardHeader({
   onEditSprint,
   onNewSprint,
   onNewProject,
+  onEditProject,
 }: BoardHeaderProps) {
   const { theme, toggleTheme, isDark } = useTheme();
   const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -77,6 +79,7 @@ export default function BoardHeader({
               onEditSprint={onEditSprint}
               onNewSprint={onNewSprint}
               onNewProject={onNewProject}
+              onEditProject={onEditProject}
             />
           </div>
 

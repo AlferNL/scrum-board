@@ -1,18 +1,19 @@
 'use client';
 
-import { Story, Task, COLUMNS, getTasksByStatus, TaskStatus } from '@/types';
+import { Story, Task, Column, getTasksByStatus, TaskStatus } from '@/types';
 import { Droppable } from '@hello-pangea/dnd';
 import StoryCard from './StoryCard';
 import TaskCard from './TaskCard';
 
 interface SwimlaneRowProps {
   story: Story;
+  columns: Column[];
   onEditStory?: (story: Story) => void;
   onEditTask?: (task: Task) => void;
   onAddTask?: (storyId: string) => void;
 }
 
-export default function SwimlaneRow({ story, onEditStory, onEditTask, onAddTask }: SwimlaneRowProps) {
+export default function SwimlaneRow({ story, columns, onEditStory, onEditTask, onAddTask }: SwimlaneRowProps) {
   return (
     <div className="flex gap-4 min-h-[200px] bg-white/50 dark:bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm">
       {/* Story Card - Left Side */}
@@ -22,7 +23,7 @@ export default function SwimlaneRow({ story, onEditStory, onEditTask, onAddTask 
 
       {/* Task Columns - Right Side */}
       <div className="flex-1 flex gap-3">
-        {COLUMNS.map((column) => {
+        {columns.map((column) => {
           const tasksInColumn = getTasksByStatus(story, column.id);
           const droppableId = `${story.id}|${column.id}`;
 

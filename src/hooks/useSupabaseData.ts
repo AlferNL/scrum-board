@@ -74,6 +74,18 @@ function transformProject(dbProject: any): Project {
     .map((pm: any) => pm.users ? transformUser(pm.users) : null)
     .filter(Boolean);
 
+  // Parse columns from JSON if present
+  let columns = undefined;
+  if (dbProject.columns) {
+    try {
+      columns = typeof dbProject.columns === 'string' 
+        ? JSON.parse(dbProject.columns) 
+        : dbProject.columns;
+    } catch (e) {
+      console.error('Error parsing columns:', e);
+    }
+  }
+
   return {
     id: dbProject.id,
     name: dbProject.name,
@@ -81,6 +93,7 @@ function transformProject(dbProject: any): Project {
     color: dbProject.color,
     teamMembers,
     sprints: (dbProject.sprints || []).map(transformSprint),
+    columns,
     createdAt: new Date(dbProject.created_at),
     updatedAt: new Date(dbProject.updated_at),
   };
@@ -185,14 +198,18 @@ export function useSupabaseData() {
   };
 
   const updateProject = async (id: string, projectData: Partial<Project>) => {
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+    
+    if (projectData.name !== undefined) updateData.name = projectData.name;
+    if (projectData.description !== undefined) updateData.description = projectData.description;
+    if (projectData.color !== undefined) updateData.color = projectData.color;
+    if (projectData.columns !== undefined) updateData.columns = JSON.stringify(projectData.columns);
+
     const { error } = await supabase
       .from('projects')
-      .update({
-        name: projectData.name,
-        description: projectData.description,
-        color: projectData.color,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id);
 
     if (error) throw error;

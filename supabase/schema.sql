@@ -26,9 +26,13 @@ CREATE TABLE IF NOT EXISTS projects (
   name TEXT NOT NULL,
   description TEXT,
   color TEXT DEFAULT '#3B82F6',
+  columns JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add columns field to existing projects table (run this if table already exists)
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS columns JSONB;
 
 -- ============================================
 -- Sprints table

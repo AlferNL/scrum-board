@@ -86,6 +86,7 @@ export interface Project {
   color: string; // Hex color for project branding
   teamMembers: User[];
   sprints: Sprint[];
+  columns?: Column[]; // Custom columns for this project
   createdAt: Date;
   updatedAt: Date;
 }
