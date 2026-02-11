@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Sprint, Story, Task, TaskStatus, COLUMNS, Project } from '@/types';
-import { mockProjects } from '@/data/mockData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { t } from '@/lib/translations';
 import SwimlaneRow from './SwimlaneRow';
 import BoardHeader from './BoardHeader';
@@ -13,12 +13,43 @@ import SprintModal from './SprintModal';
 import ProjectModal from './ProjectModal';
 
 export default function Board() {
-  // Project and Sprint state
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [currentProjectId, setCurrentProjectId] = useState<string>(mockProjects[0]?.id || '');
-  const [currentSprintId, setCurrentSprintId] = useState<string>(
-    mockProjects[0]?.sprints.find(s => s.isActive)?.id || mockProjects[0]?.sprints[0]?.id || ''
-  );
+  // Supabase data hook
+  const {
+    projects,
+    users,
+    loading,
+    error,
+    refetch,
+    createProject,
+    updateProject,
+    deleteProject: deleteProjectDb,
+    createSprint,
+    updateSprint,
+    deleteSprint: deleteSprintDb,
+    createStory,
+    updateStory,
+    deleteStory: deleteStoryDb,
+    createTask,
+    updateTask,
+    deleteTask: deleteTaskDb,
+    updateTaskStatus,
+  } = useSupabaseData();
+
+  // Project and Sprint selection state
+  const [currentProjectId, setCurrentProjectId] = useState<string>('');
+  const [currentSprintId, setCurrentSprintId] = useState<string>('');
+  
+  // Set initial project/sprint when data loads
+  useEffect(() => {
+    if (projects.length > 0 && !currentProjectId) {
+      const firstProject = projects[0];
+      setCurrentProjectId(firstProject.id);
+      const activeSprint = firstProject.sprints.find(s => s.isActive) || firstProject.sprints[0];
+      if (activeSprint) {
+        setCurrentSprintId(activeSprint.id);
+      }
+    }
+  }, [projects, currentProjectId]);
   
   // Derived state for current project and sprint
   const currentProject = projects.find(p => p.id === currentProjectId) || projects[0];
@@ -34,13 +65,13 @@ export default function Board() {
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [activeStoryId, setActiveStoryId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
 
   // Handle project change
   const handleProjectChange = (projectId: string) => {
     setCurrentProjectId(projectId);
     const project = projects.find(p => p.id === projectId);
     if (project) {
-      // Select the active sprint or the first sprint
       const activeSprint = project.sprints.find(s => s.isActive) || project.sprints[0];
       if (activeSprint) {
         setCurrentSprintId(activeSprint.id);
@@ -57,13 +88,11 @@ export default function Board() {
    * Handle drag end - Move task between columns (and potentially stories)
    * DroppableId format: "storyId|status"
    */
-  const handleDragEnd = useCallback((result: DropResult) => {
+  const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result;
 
-    // Dropped outside a valid droppable
     if (!destination) return;
 
-    // Dropped in the same position
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -71,91 +100,20 @@ export default function Board() {
       return;
     }
 
-    // Parse source and destination
-    const [sourceStoryId, sourceStatus] = source.droppableId.split('|') as [string, TaskStatus];
+    const [sourceStoryId] = source.droppableId.split('|') as [string, TaskStatus];
     const [destStoryId, destStatus] = destination.droppableId.split('|') as [string, TaskStatus];
 
-    setProjects((prevProjects) => {
-      // Deep clone the projects
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      
-      // Find the current project
-      const projectIndex = newProjects.findIndex(p => p.id === currentProjectId);
-      if (projectIndex === -1) return prevProjects;
-      
-      // Find the current sprint
-      const sprintIndex = newProjects[projectIndex].sprints.findIndex(s => s.id === currentSprintId);
-      if (sprintIndex === -1) return prevProjects;
-      
-      const sprint = newProjects[projectIndex].sprints[sprintIndex];
-
-      // Find the source story
-      const sourceStoryIndex = sprint.stories.findIndex((s) => s.id === sourceStoryId);
-      if (sourceStoryIndex === -1) return prevProjects;
-
-      const sourceStory = sprint.stories[sourceStoryIndex];
-
-      // Find the task to move
-      const taskIndex = sourceStory.tasks.findIndex((t) => t.id === draggableId);
-      if (taskIndex === -1) return prevProjects;
-
-      // Remove task from source
-      const [movedTask] = sourceStory.tasks.splice(taskIndex, 1);
-
-      // Update task status
-      movedTask.status = destStatus;
-      movedTask.updatedAt = new Date();
-
-      // If moving within the same story
-      if (sourceStoryId === destStoryId) {
-        // Get tasks with the destination status to find correct insert position
-        const tasksWithDestStatus = sourceStory.tasks.filter((t) => t.status === destStatus);
-        
-        // Find where to insert in the full tasks array
-        if (tasksWithDestStatus.length === 0) {
-          sourceStory.tasks.push(movedTask);
-        } else {
-          // Insert at the correct position among tasks with same status
-          const insertAfterTask = tasksWithDestStatus[destination.index - 1];
-          if (insertAfterTask) {
-            const insertIndex = sourceStory.tasks.findIndex((t) => t.id === insertAfterTask.id) + 1;
-            sourceStory.tasks.splice(insertIndex, 0, movedTask);
-          } else {
-            // Insert at the beginning of tasks with this status
-            const firstTaskWithStatus = tasksWithDestStatus[0];
-            const insertIndex = sourceStory.tasks.findIndex((t) => t.id === firstTaskWithStatus?.id);
-            sourceStory.tasks.splice(insertIndex >= 0 ? insertIndex : 0, 0, movedTask);
-          }
-        }
-      } else {
-        // Moving to a different story
-        const destStory = sprint.stories.find((s) => s.id === destStoryId);
-        if (!destStory) return prevProjects;
-
-        // Update task's storyId
-        movedTask.storyId = destStoryId;
-
-        // Get tasks with the destination status
-        const tasksWithDestStatus = destStory.tasks.filter((t) => t.status === destStatus);
-
-        if (tasksWithDestStatus.length === 0) {
-          destStory.tasks.push(movedTask);
-        } else {
-          const insertAfterTask = tasksWithDestStatus[destination.index - 1];
-          if (insertAfterTask) {
-            const insertIndex = destStory.tasks.findIndex((t) => t.id === insertAfterTask.id) + 1;
-            destStory.tasks.splice(insertIndex, 0, movedTask);
-          } else {
-            const firstTaskWithStatus = tasksWithDestStatus[0];
-            const insertIndex = destStory.tasks.findIndex((t) => t.id === firstTaskWithStatus?.id);
-            destStory.tasks.splice(insertIndex >= 0 ? insertIndex : 0, 0, movedTask);
-          }
-        }
-      }
-
-      return newProjects;
-    });
-  }, [currentProjectId, currentSprintId]);
+    try {
+      // Update task status in Supabase
+      await updateTaskStatus(
+        draggableId,
+        destStatus,
+        sourceStoryId !== destStoryId ? destStoryId : undefined
+      );
+    } catch (err) {
+      console.error('Error updating task status:', err);
+    }
+  }, [updateTaskStatus]);
 
   // ============================================
   // Task CRUD Operations
@@ -173,72 +131,30 @@ export default function Board() {
     setTaskModalOpen(true);
   };
 
-  const handleSaveTask = (taskData: Partial<Task> & { storyId: string }) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      const projectIndex = newProjects.findIndex(p => p.id === currentProjectId);
-      if (projectIndex === -1) return prevProjects;
-      
-      const sprintIndex = newProjects[projectIndex].sprints.findIndex(s => s.id === currentSprintId);
-      if (sprintIndex === -1) return prevProjects;
-      
-      const sprint = newProjects[projectIndex].sprints[sprintIndex];
-      const storyIndex = sprint.stories.findIndex((s) => s.id === taskData.storyId);
-      
-      if (storyIndex === -1) return prevProjects;
-      
+  const handleSaveTask = async (taskData: Partial<Task> & { storyId: string }) => {
+    setSaving(true);
+    try {
       if (taskData.id) {
-        // Update existing task
-        const taskIndex = sprint.stories[storyIndex].tasks.findIndex((t) => t.id === taskData.id);
-        if (taskIndex !== -1) {
-          sprint.stories[storyIndex].tasks[taskIndex] = {
-            ...sprint.stories[storyIndex].tasks[taskIndex],
-            ...taskData,
-            updatedAt: new Date(),
-          };
-        }
+        await updateTask(taskData.id, taskData);
       } else {
-        // Create new task
-        const newTask: Task = {
-          id: `task-${Date.now()}`,
-          storyId: taskData.storyId,
-          title: taskData.title || '',
-          description: taskData.description,
-          status: taskData.status || 'todo',
-          priority: taskData.priority || 'medium',
-          assignee: taskData.assignee,
-          estimatedHours: taskData.estimatedHours,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        sprint.stories[storyIndex].tasks.push(newTask);
+        await createTask(taskData);
       }
-      
-      return newProjects;
-    });
+    } catch (err) {
+      console.error('Error saving task:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      const projectIndex = newProjects.findIndex(p => p.id === currentProjectId);
-      if (projectIndex === -1) return prevProjects;
-      
-      const sprintIndex = newProjects[projectIndex].sprints.findIndex(s => s.id === currentSprintId);
-      if (sprintIndex === -1) return prevProjects;
-      
-      const sprint = newProjects[projectIndex].sprints[sprintIndex];
-      
-      for (const story of sprint.stories) {
-        const taskIndex = story.tasks.findIndex((t) => t.id === taskId);
-        if (taskIndex !== -1) {
-          story.tasks.splice(taskIndex, 1);
-          break;
-        }
-      }
-      
-      return newProjects;
-    });
+  const handleDeleteTask = async (taskId: string) => {
+    setSaving(true);
+    try {
+      await deleteTaskDb(taskId);
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ============================================
@@ -255,61 +171,30 @@ export default function Board() {
     setStoryModalOpen(true);
   };
 
-  const handleSaveStory = (storyData: Partial<Story> & { sprintId: string }) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      const projectIndex = newProjects.findIndex(p => p.id === currentProjectId);
-      if (projectIndex === -1) return prevProjects;
-      
-      const sprintIndex = newProjects[projectIndex].sprints.findIndex(s => s.id === currentSprintId);
-      if (sprintIndex === -1) return prevProjects;
-      
-      const sprint = newProjects[projectIndex].sprints[sprintIndex];
-      
+  const handleSaveStory = async (storyData: Partial<Story> & { sprintId: string }) => {
+    setSaving(true);
+    try {
       if (storyData.id) {
-        // Update existing story
-        const storyIndex = sprint.stories.findIndex((s) => s.id === storyData.id);
-        if (storyIndex !== -1) {
-          sprint.stories[storyIndex] = {
-            ...sprint.stories[storyIndex],
-            ...storyData,
-            updatedAt: new Date(),
-          };
-        }
+        await updateStory(storyData.id, storyData);
       } else {
-        // Create new story
-        const newStory: Story = {
-          id: `story-${Date.now()}`,
-          sprintId: storyData.sprintId,
-          title: storyData.title || '',
-          description: storyData.description || '',
-          storyPoints: storyData.storyPoints || 5,
-          priority: storyData.priority || 'medium',
-          assignee: storyData.assignee,
-          tasks: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        sprint.stories.push(newStory);
+        await createStory(storyData);
       }
-      
-      return newProjects;
-    });
+    } catch (err) {
+      console.error('Error saving story:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteStory = (storyId: string) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      const projectIndex = newProjects.findIndex(p => p.id === currentProjectId);
-      if (projectIndex === -1) return prevProjects;
-      
-      const sprintIndex = newProjects[projectIndex].sprints.findIndex(s => s.id === currentSprintId);
-      if (sprintIndex === -1) return prevProjects;
-      
-      newProjects[projectIndex].sprints[sprintIndex].stories = 
-        newProjects[projectIndex].sprints[sprintIndex].stories.filter((s) => s.id !== storyId);
-      return newProjects;
-    });
+  const handleDeleteStory = async (storyId: string) => {
+    setSaving(true);
+    try {
+      await deleteStoryDb(storyId);
+    } catch (err) {
+      console.error('Error deleting story:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ============================================
@@ -317,7 +202,7 @@ export default function Board() {
   // ============================================
   
   const handleEditSprint = () => {
-    setEditingSprint(currentSprint);
+    setEditingSprint(currentSprint || null);
     setSprintModalOpen(true);
   };
 
@@ -326,133 +211,89 @@ export default function Board() {
     setSprintModalOpen(true);
   };
 
-  const handleSaveSprint = (sprintData: Partial<Sprint> & { projectId: string }) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      const projectIndex = newProjects.findIndex(p => p.id === sprintData.projectId);
-      if (projectIndex === -1) return prevProjects;
-      
+  const handleSaveSprint = async (sprintData: Partial<Sprint> & { projectId: string }) => {
+    setSaving(true);
+    try {
       if (sprintData.id) {
-        // Update existing sprint
-        const sprintIndex = newProjects[projectIndex].sprints.findIndex((s) => s.id === sprintData.id);
-        if (sprintIndex !== -1) {
-          // If making this sprint active, deactivate others
-          if (sprintData.isActive) {
-            newProjects[projectIndex].sprints.forEach(s => s.isActive = false);
-          }
-          newProjects[projectIndex].sprints[sprintIndex] = {
-            ...newProjects[projectIndex].sprints[sprintIndex],
-            ...sprintData,
-          };
-        }
+        await updateSprint(sprintData.id, sprintData);
       } else {
-        // Create new sprint
-        // If making this sprint active, deactivate others
-        if (sprintData.isActive) {
-          newProjects[projectIndex].sprints.forEach(s => s.isActive = false);
+        const newSprintId = await createSprint(sprintData);
+        if (newSprintId) {
+          setCurrentSprintId(newSprintId);
         }
-        const newSprint: Sprint = {
-          id: `sprint-${Date.now()}`,
-          projectId: sprintData.projectId,
-          name: sprintData.name || '',
-          goal: sprintData.goal,
-          startDate: sprintData.startDate || new Date(),
-          endDate: sprintData.endDate || new Date(),
-          stories: [],
-          isActive: sprintData.isActive || false,
-          teamMembers: sprintData.teamMembers,
-        };
-        newProjects[projectIndex].sprints.push(newSprint);
-        // Select the new sprint
-        setCurrentSprintId(newSprint.id);
       }
-      
-      return newProjects;
-    });
+    } catch (err) {
+      console.error('Error saving sprint:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteSprint = (sprintId: string) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      const projectIndex = newProjects.findIndex(p => p.id === currentProjectId);
-      if (projectIndex === -1) return prevProjects;
-      
-      newProjects[projectIndex].sprints = 
-        newProjects[projectIndex].sprints.filter((s) => s.id !== sprintId);
-      
-      // If we deleted the current sprint, select another one
-      if (sprintId === currentSprintId && newProjects[projectIndex].sprints.length > 0) {
-        setCurrentSprintId(newProjects[projectIndex].sprints[0].id);
+  const handleDeleteSprint = async (sprintId: string) => {
+    setSaving(true);
+    try {
+      await deleteSprintDb(sprintId);
+      // Select another sprint if we deleted the current one
+      if (sprintId === currentSprintId && currentProject?.sprints.length > 1) {
+        const otherSprint = currentProject.sprints.find(s => s.id !== sprintId);
+        if (otherSprint) {
+          setCurrentSprintId(otherSprint.id);
+        }
       }
-      
-      return newProjects;
-    });
+    } catch (err) {
+      console.error('Error deleting sprint:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ============================================
   // Project CRUD Operations
   // ============================================
   
-  const handleEditProject = () => {
-    setEditingProject(currentProject);
-    setProjectModalOpen(true);
-  };
-
   const handleAddProject = () => {
     setEditingProject(null);
     setProjectModalOpen(true);
   };
 
-  const handleSaveProject = (projectData: Partial<Project>) => {
-    setProjects((prevProjects) => {
-      const newProjects = JSON.parse(JSON.stringify(prevProjects)) as Project[];
-      
+  const handleSaveProject = async (projectData: Partial<Project>) => {
+    setSaving(true);
+    try {
       if (projectData.id) {
-        // Update existing project
-        const projectIndex = newProjects.findIndex((p) => p.id === projectData.id);
-        if (projectIndex !== -1) {
-          newProjects[projectIndex] = {
-            ...newProjects[projectIndex],
-            ...projectData,
-            updatedAt: new Date(),
-          };
-        }
+        await updateProject(projectData.id, projectData);
       } else {
-        // Create new project
-        const newProject: Project = {
-          id: `project-${Date.now()}`,
-          name: projectData.name || '',
-          description: projectData.description,
-          color: projectData.color || '#3B82F6',
-          teamMembers: projectData.teamMembers || [],
-          sprints: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        newProjects.push(newProject);
-        // Select the new project
-        setCurrentProjectId(newProject.id);
+        const newProjectId = await createProject(projectData);
+        if (newProjectId) {
+          setCurrentProjectId(newProjectId);
+        }
       }
-      
-      return newProjects;
-    });
+    } catch (err) {
+      console.error('Error saving project:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    setProjects((prevProjects) => {
-      const newProjects = prevProjects.filter((p) => p.id !== projectId);
-      
-      // If we deleted the current project, select another one
-      if (projectId === currentProjectId && newProjects.length > 0) {
-        setCurrentProjectId(newProjects[0].id);
-        const activeSprint = newProjects[0].sprints.find(s => s.isActive) || newProjects[0].sprints[0];
-        if (activeSprint) {
-          setCurrentSprintId(activeSprint.id);
+  const handleDeleteProject = async (projectId: string) => {
+    setSaving(true);
+    try {
+      await deleteProjectDb(projectId);
+      // Select another project if we deleted the current one
+      if (projectId === currentProjectId && projects.length > 1) {
+        const otherProject = projects.find(p => p.id !== projectId);
+        if (otherProject) {
+          setCurrentProjectId(otherProject.id);
+          const activeSprint = otherProject.sprints.find(s => s.isActive) || otherProject.sprints[0];
+          if (activeSprint) {
+            setCurrentSprintId(activeSprint.id);
+          }
         }
       }
-      
-      return newProjects;
-    });
+    } catch (err) {
+      console.error('Error deleting project:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Calculate sprint statistics
@@ -463,11 +304,51 @@ export default function Board() {
   ) || 0;
   const totalStoryPoints = currentSprint?.stories.reduce((acc, story) => acc + story.storyPoints, 0) || 0;
 
-  // Guard clause for when there's no data
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t.common.error}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            Opnieuw proberen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state - no projects
   if (!currentProject || !currentSprint) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
+          <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">{t.project.noProjects}</p>
           <button
             onClick={handleAddProject}
@@ -486,6 +367,7 @@ export default function Board() {
           }}
           onSave={handleSaveProject}
           onDelete={handleDeleteProject}
+          users={users}
         />
       </div>
     );
@@ -493,6 +375,14 @@ export default function Board() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      {/* Saving indicator */}
+      {saving && (
+        <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          <span>Opslaan...</span>
+        </div>
+      )}
+
       {/* Board Header */}
       <BoardHeader 
         projects={projects}
@@ -573,6 +463,7 @@ export default function Board() {
         }}
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
+        users={users}
       />
 
       {/* Story Modal */}
@@ -586,6 +477,7 @@ export default function Board() {
         }}
         onSave={handleSaveStory}
         onDelete={handleDeleteStory}
+        users={users}
       />
 
       {/* Sprint Modal */}
@@ -599,6 +491,7 @@ export default function Board() {
         }}
         onSave={handleSaveSprint}
         onDelete={handleDeleteSprint}
+        users={users}
       />
 
       {/* Project Modal */}
@@ -611,6 +504,7 @@ export default function Board() {
         }}
         onSave={handleSaveProject}
         onDelete={handleDeleteProject}
+        users={users}
       />
     </div>
   );

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Story, Priority, User } from '@/types';
 import { t } from '@/lib/translations';
-import { mockUsers } from '@/data/mockData';
 
 interface StoryModalProps {
   story?: Story | null;
@@ -12,6 +11,7 @@ interface StoryModalProps {
   onClose: () => void;
   onSave: (story: Partial<Story> & { sprintId: string }) => void;
   onDelete?: (storyId: string) => void;
+  users?: User[];
 }
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
@@ -30,6 +30,7 @@ export default function StoryModal({
   onClose,
   onSave,
   onDelete,
+  users = [],
 }: StoryModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -64,7 +65,7 @@ export default function StoryModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const assignee = mockUsers.find((u) => u.id === formData.assigneeId);
+    const assignee = users.find((u) => u.id === formData.assigneeId);
     
     onSave({
       ...(story && { id: story.id, tasks: story.tasks }),
@@ -207,7 +208,7 @@ export default function StoryModal({
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">{t.common.selectAssignee}</option>
-              {mockUsers.map((user) => (
+              {users.map((user) => (
                 <option key={user.id} value={user.id}>{user.name}</option>
               ))}
             </select>

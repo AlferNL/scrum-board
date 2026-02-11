@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Sprint, User } from '@/types';
 import { t } from '@/lib/translations';
-import { mockUsers } from '@/data/mockData';
 import Image from 'next/image';
 
 interface SprintModalProps {
@@ -13,6 +12,7 @@ interface SprintModalProps {
   onClose: () => void;
   onSave: (sprint: Partial<Sprint> & { projectId: string }) => void;
   onDelete?: (sprintId: string) => void;
+  users?: User[];
 }
 
 export default function SprintModal({
@@ -22,6 +22,7 @@ export default function SprintModal({
   onClose,
   onSave,
   onDelete,
+  users = [],
 }: SprintModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -68,7 +69,7 @@ export default function SprintModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const teamMembers = mockUsers.filter((u) => formData.teamMemberIds.includes(u.id));
+    const teamMembers = users.filter((u) => formData.teamMemberIds.includes(u.id));
     
     onSave({
       ...(sprint && { id: sprint.id, stories: sprint.stories }),
@@ -239,7 +240,7 @@ export default function SprintModal({
               {t.modal.teamMembers}
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {mockUsers.map((user) => (
+              {users.map((user) => (
                 <button
                   key={user.id}
                   type="button"

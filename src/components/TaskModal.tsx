@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Task, TaskStatus, Priority, User } from '@/types';
 import { t } from '@/lib/translations';
-import { mockUsers } from '@/data/mockData';
 
 interface TaskModalProps {
   task?: Task | null;
@@ -12,6 +11,7 @@ interface TaskModalProps {
   onClose: () => void;
   onSave: (task: Partial<Task> & { storyId: string }) => void;
   onDelete?: (taskId: string) => void;
+  users?: User[];
 }
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -35,6 +35,7 @@ export default function TaskModal({
   onClose,
   onSave,
   onDelete,
+  users = [],
 }: TaskModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -72,7 +73,7 @@ export default function TaskModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const assignee = mockUsers.find((u) => u.id === formData.assigneeId);
+    const assignee = users.find((u) => u.id === formData.assigneeId);
     
     onSave({
       ...(task && { id: task.id }),
@@ -213,7 +214,7 @@ export default function TaskModal({
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">{t.common.selectAssignee}</option>
-                {mockUsers.map((user) => (
+                {users.map((user) => (
                   <option key={user.id} value={user.id}>{user.name}</option>
                 ))}
               </select>

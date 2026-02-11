@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Project, User } from '@/types';
 import { t } from '@/lib/translations';
-import { mockUsers } from '@/data/mockData';
 import Image from 'next/image';
 
 interface ProjectModalProps {
@@ -12,6 +11,7 @@ interface ProjectModalProps {
   onClose: () => void;
   onSave: (project: Partial<Project>) => void;
   onDelete?: (projectId: string) => void;
+  users?: User[];
 }
 
 const PROJECT_COLORS = [
@@ -31,6 +31,7 @@ export default function ProjectModal({
   onClose,
   onSave,
   onDelete,
+  users = [],
 }: ProjectModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -62,7 +63,7 @@ export default function ProjectModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const teamMembers = mockUsers.filter((u) => formData.teamMemberIds.includes(u.id));
+    const teamMembers = users.filter((u) => formData.teamMemberIds.includes(u.id));
     
     onSave({
       ...(project && { id: project.id, sprints: project.sprints }),
@@ -181,7 +182,7 @@ export default function ProjectModal({
               {t.modal.teamMembers}
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {mockUsers.map((user) => (
+              {users.map((user) => (
                 <button
                   key={user.id}
                   type="button"
