@@ -12,6 +12,7 @@ export const mockUsers: User[] = [
     email: 'sarah.chen@company.com',
     role: 'Frontend Developer',
     userRole: 'ADMIN',
+    status: 'APPROVED',
   },
   {
     id: 'user-2',
@@ -20,6 +21,7 @@ export const mockUsers: User[] = [
     email: 'marcus.johnson@company.com',
     role: 'Backend Developer',
     userRole: 'PRODUCT_OWNER',
+    status: 'APPROVED',
   },
   {
     id: 'user-3',
@@ -28,6 +30,7 @@ export const mockUsers: User[] = [
     email: 'elena.rodriguez@company.com',
     role: 'UX Designer',
     userRole: 'MEMBER',
+    status: 'APPROVED',
   },
   {
     id: 'user-4',
@@ -36,6 +39,7 @@ export const mockUsers: User[] = [
     email: 'david.kim@company.com',
     role: 'Full Stack Developer',
     userRole: 'MEMBER',
+    status: 'APPROVED',
   },
   {
     id: 'user-5',
@@ -44,6 +48,7 @@ export const mockUsers: User[] = [
     email: 'anna.mueller@company.com',
     role: 'QA Engineer',
     userRole: 'VIEWER',
+    status: 'APPROVED',
   },
 ];
 

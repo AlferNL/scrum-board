@@ -18,6 +18,20 @@ export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type UserRole = 'ADMIN' | 'PRODUCT_OWNER' | 'MEMBER' | 'VIEWER';
 
 /**
+ * User Status for approval workflow
+ */
+export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+/**
+ * Status configuration with labels and colors
+ */
+export const USER_STATUS_CONFIG: Record<UserStatus, { label: string; color: string; bgColor: string }> = {
+  PENDING: { label: 'Wachtend', color: 'text-yellow-700', bgColor: 'bg-yellow-100 dark:bg-yellow-900/30' },
+  APPROVED: { label: 'Goedgekeurd', color: 'text-green-700', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  REJECTED: { label: 'Afgewezen', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+};
+
+/**
  * Role configuration with labels and colors
  */
 export const USER_ROLE_CONFIG: Record<UserRole, { label: string; color: string; bgColor: string }> = {
@@ -37,6 +51,8 @@ export interface User {
   email?: string;
   role?: string; // Job title/role description
   userRole: UserRole; // Access control role
+  status: UserStatus; // Approval status
+  authId?: string; // Supabase Auth user ID
 }
 
 /**

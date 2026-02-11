@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/lib/ThemeContext';
-import { useUser } from '@/lib/UserContext';
+import { useAuth } from '@/lib/AuthContext';
+import { AdminGuard } from '@/components/AuthGuard';
 
 const adminNavItems = [
   {
@@ -42,10 +43,11 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const { isDark, toggleTheme } = useTheme();
-  const { currentUser, permissions } = useUser();
+  const { currentUser, signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Logo/Header */}
@@ -128,6 +130,17 @@ export default function AdminLayout({
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{currentUser.name}</p>
             </div>
           )}
+
+          {/* Logout Button */}
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Uitloggen
+          </button>
         </div>
       </aside>
 
@@ -136,5 +149,6 @@ export default function AdminLayout({
         {children}
       </main>
     </div>
+    </AdminGuard>
   );
 }

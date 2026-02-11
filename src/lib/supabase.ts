@@ -19,6 +19,9 @@ export interface DbUser {
   email: string | null;
   avatar: string | null;
   role: string | null;
+  user_role: string | null;
+  status: string | null;
+  auth_id: string | null;
   created_at: string;
 }
 

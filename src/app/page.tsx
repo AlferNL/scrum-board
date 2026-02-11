@@ -1,5 +1,12 @@
+'use client';
+
 import { Board } from '@/components';
+import { AuthGuard } from '@/components/AuthGuard';
 
 export default function Home() {
-  return <Board />;
+  return (
+    <AuthGuard>
+      <Board />
+    </AuthGuard>
+  );
 }

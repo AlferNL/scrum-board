@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from '@/lib/ThemeContext';
 import { UserProvider } from '@/lib/UserContext';
+import { AuthProvider } from '@/lib/AuthContext';
 import { ReactNode } from 'react';
 
 interface ProvidersProps {
@@ -11,9 +12,11 @@ interface ProvidersProps {
 export default function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider>
-      <UserProvider>
-        {children}
-      </UserProvider>
+      <AuthProvider>
+        <UserProvider>
+          {children}
+        </UserProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
