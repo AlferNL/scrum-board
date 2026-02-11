@@ -21,8 +21,6 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: 'critical', label: t.priority.critical },
 ];
 
-const STORY_POINTS = [1, 2, 3, 5, 8, 13, 21];
-
 export default function StoryModal({
   story,
   sprintId,
@@ -36,7 +34,6 @@ export default function StoryModal({
     title: '',
     description: '',
     priority: 'medium' as Priority,
-    storyPoints: 5,
     assigneeId: '',
   });
 
@@ -48,7 +45,6 @@ export default function StoryModal({
         title: story.title,
         description: story.description || '',
         priority: story.priority,
-        storyPoints: story.storyPoints,
         assigneeId: story.assignee?.id || '',
       });
     } else {
@@ -56,7 +52,6 @@ export default function StoryModal({
         title: '',
         description: '',
         priority: 'medium',
-        storyPoints: 5,
         assigneeId: '',
       });
     }
@@ -73,7 +68,7 @@ export default function StoryModal({
       title: formData.title,
       description: formData.description,
       priority: formData.priority,
-      storyPoints: formData.storyPoints,
+      storyPoints: 1, // Default value, not used for display anymore
       assignee,
     });
     
@@ -151,33 +146,8 @@ export default function StoryModal({
             />
           </div>
 
-          {/* Story Points & Priority Row */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Story Points */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t.modal.storyPoints}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {STORY_POINTS.map((points) => (
-                  <button
-                    key={points}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, storyPoints: points })}
-                    className={`w-10 h-10 rounded-lg font-medium transition-colors
-                      ${formData.storyPoints === points
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                  >
-                    {points}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Priority */}
-            <div>
+          {/* Priority */}
+          <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {t.modal.priority}
               </label>
@@ -192,7 +162,6 @@ export default function StoryModal({
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-            </div>
           </div>
 
           {/* Assignee */}

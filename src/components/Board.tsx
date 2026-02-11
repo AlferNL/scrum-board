@@ -359,7 +359,7 @@ export default function Board() {
     (acc, story) => acc + story.tasks.filter((t) => t.status === 'done').length,
     0
   ) || 0;
-  const totalStoryPoints = currentSprint?.stories.reduce((acc, story) => acc + story.storyPoints, 0) || 0;
+  const totalStories = currentSprint?.stories.length || 0;
 
   // Loading state
   if (loading) {
@@ -542,7 +542,7 @@ export default function Board() {
         sprint={currentSprint}
         totalTasks={totalTasks}
         completedTasks={completedTasks}
-        totalStoryPoints={totalStoryPoints}
+        totalStories={totalStories}
         onAddStory={permissions.canEditTasks ? handleAddStory : undefined}
         onProjectChange={handleProjectChange}
         onSprintChange={handleSprintChange}
