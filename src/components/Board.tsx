@@ -14,6 +14,7 @@ import SprintModal from './SprintModal';
 import ProjectModal from './ProjectModal';
 import ColumnSettingsModal from './ColumnSettingsModal';
 import UserSelector from './UserSelector';
+import Link from 'next/link';
 
 export default function Board() {
   // User context for permissions
@@ -406,12 +407,20 @@ export default function Board() {
             </svg>
           </div>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">{t.project.noProjects}</p>
-          <button
-            onClick={handleAddProject}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            {t.menu.newProject}
-          </button>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={handleAddProject}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              {t.menu.newProject}
+            </button>
+            <Link
+              href="/admin"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              Admin Panel
+            </Link>
+          </div>
         </div>
         
         <ProjectModal
