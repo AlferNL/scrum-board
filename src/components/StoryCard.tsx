@@ -147,7 +147,7 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{t.story.progress}</span>
-          <span className="text-xs font-semibold text-gray-800 dark:text-white">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-100">
             {progress.completed}/{progress.total} {t.story.tasks}
           </span>
         </div>
