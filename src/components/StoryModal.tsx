@@ -36,7 +36,9 @@ export default function StoryModal({
     priority: 'medium' as Priority,
     status: 'OPEN' as StoryStatus,
     assigneeId: '',
+    acceptanceCriteria: [] as string[],
   });
+  const [newCriterion, setNewCriterion] = useState('');
 
   const isEditing = !!story;
 
@@ -48,6 +50,7 @@ export default function StoryModal({
         priority: story.priority,
         status: story.status || 'OPEN',
         assigneeId: story.assignee?.id || '',
+        acceptanceCriteria: story.acceptanceCriteria || [],
       });
     } else {
       setFormData({
@@ -56,8 +59,10 @@ export default function StoryModal({
         priority: 'medium',
         status: 'OPEN',
         assigneeId: '',
+        acceptanceCriteria: [],
       });
     }
+    setNewCriterion('');
   }, [story, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,9 +79,27 @@ export default function StoryModal({
       status: formData.status,
       storyPoints: 1, // Default value, not used for display anymore
       assignee,
+      acceptanceCriteria: formData.acceptanceCriteria,
     });
     
     onClose();
+  };
+
+  const addCriterion = () => {
+    if (newCriterion.trim()) {
+      setFormData({
+        ...formData,
+        acceptanceCriteria: [...formData.acceptanceCriteria, newCriterion.trim()],
+      });
+      setNewCriterion('');
+    }
+  };
+
+  const removeCriterion = (index: number) => {
+    setFormData({
+      ...formData,
+      acceptanceCriteria: formData.acceptanceCriteria.filter((_, i) => i !== index),
+    });
   };
 
   const handleDelete = () => {
@@ -203,6 +226,57 @@ export default function StoryModal({
                 <option key={user.id} value={user.id}>{user.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* Acceptance Criteria */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t.modal.acceptanceCriteria}
+            </label>
+            {/* Existing criteria list */}
+            {formData.acceptanceCriteria.length > 0 && (
+              <ul className="mb-2 space-y-1">
+                {formData.acceptanceCriteria.map((criterion, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 
+                                             bg-gray-50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
+                    <span className="text-green-500">✓</span>
+                    <span className="flex-1">{criterion}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeCriterion(index)}
+                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1"
+                      title={t.common.delete}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Add new criterion */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newCriterion}
+                onChange={(e) => setNewCriterion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCriterion())}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                placeholder={t.modal.acceptanceCriteriaPlaceholder}
+              />
+              <button
+                type="button"
+                onClick={addCriterion}
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg 
+                           transition-colors text-sm font-medium"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {/* Actions */}

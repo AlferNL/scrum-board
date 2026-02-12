@@ -57,7 +57,7 @@ function transformStory(dbStory: any): Story {
     status: dbStory.status || 'OPEN',
     assignee: dbStory.users ? transformUser(dbStory.users) : undefined,
     tasks: (dbStory.tasks || []).map(transformTask),
-    acceptanceCriteria: [],
+    acceptanceCriteria: dbStory.acceptance_criteria || [],
     createdAt: new Date(dbStory.created_at),
     updatedAt: new Date(dbStory.updated_at),
   };
@@ -444,6 +444,7 @@ export function useSupabaseData() {
         priority: storyData.priority,
         status: storyData.status || 'OPEN',
         assignee_id: storyData.assignee?.id || null,
+        acceptance_criteria: storyData.acceptanceCriteria || [],
       })
       .select()
       .single();
@@ -475,6 +476,7 @@ export function useSupabaseData() {
         priority: storyData.priority,
         status: storyData.status,
         assignee_id: storyData.assignee?.id || null,
+        acceptance_criteria: storyData.acceptanceCriteria || [],
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);

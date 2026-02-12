@@ -60,9 +60,13 @@ CREATE TABLE IF NOT EXISTS stories (
   priority TEXT DEFAULT 'medium',
   status TEXT DEFAULT 'OPEN',
   assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  acceptance_criteria TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add acceptance_criteria to existing stories table (run if table already exists)
+-- ALTER TABLE stories ADD COLUMN IF NOT EXISTS acceptance_criteria TEXT[] DEFAULT '{}';
 
 -- ============================================
 -- Tasks table

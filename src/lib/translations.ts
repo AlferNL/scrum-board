@@ -34,6 +34,7 @@ export const t = {
     edit: 'Bewerken',
     delete: 'Verwijderen',
     addTask: 'Taak Toevoegen',
+    acceptanceCriteria: 'Acceptatiecriteria',
   },
 
   // Task Card
@@ -105,6 +106,9 @@ export const t = {
     webhookDescription: 'Optioneel: Microsoft Teams webhook URL voor meldingen bij wijzigingen',
     selectSprint: 'Selecteer Sprint',
     allSprints: 'Alle Sprints',
+    // Acceptance Criteria
+    acceptanceCriteria: 'Acceptatiecriteria',
+    acceptanceCriteriaPlaceholder: 'Voeg acceptatiecriterium toe...',
     // Project members
     projectMembers: 'Projectleden',
     addMember: 'Lid Toevoegen',
@@ -185,6 +189,8 @@ export const t = {
     success: 'Succesvol opgeslagen',
     unassigned: 'Niet toegewezen',
     selectAssignee: 'Selecteer persoon',
+    delete: 'Verwijderen',
+    more: 'meer',
   },
 };
 
