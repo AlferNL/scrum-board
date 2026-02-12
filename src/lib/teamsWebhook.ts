@@ -10,7 +10,7 @@ export type ActivityType =
   | 'project_created' | 'project_updated' | 'project_deleted'
   | 'sprint_created' | 'sprint_updated' | 'sprint_deleted'
   | 'story_created' | 'story_updated' | 'story_deleted' | 'story_status_changed'
-  | 'task_created' | 'task_updated' | 'task_deleted' | 'task_status_changed'
+  | 'task_created' | 'task_updated' | 'task_deleted' | 'task_status_changed' | 'task_moved'
   | 'member_added' | 'member_removed' | 'member_role_changed';
 
 // Dutch activity descriptions
@@ -29,6 +29,7 @@ const ACTIVITY_DESCRIPTIONS: Record<ActivityType, string> = {
   task_updated: 'heeft de taak bijgewerkt',
   task_deleted: 'heeft de taak verwijderd',
   task_status_changed: 'heeft de taak status gewijzigd',
+  task_moved: 'heeft een taak verplaatst naar een andere story',
   member_added: 'heeft een nieuw lid toegevoegd',
   member_removed: 'heeft een lid verwijderd',
   member_role_changed: 'heeft de rol van een lid gewijzigd',

@@ -732,12 +732,22 @@ export function useSupabaseData() {
   // Update task status (for drag and drop)
   const updateTaskStatus = async (taskId: string, newStatus: Task['status'], newStoryId?: string) => {
     // Find project and existing task
-    const { project, storyTitle } = findProjectByTaskId(projects, taskId);
+    const { project, storyTitle: sourceStoryTitle } = findProjectByTaskId(projects, taskId);
     const existingTask = projects
       .flatMap(p => p.sprints)
       .flatMap(s => s.stories)
       .flatMap(s => s.tasks)
       .find(t => t.id === taskId);
+    
+    // Find destination story title if moving between stories
+    let destStoryTitle: string | undefined;
+    if (newStoryId) {
+      const destStory = projects
+        .flatMap(p => p.sprints)
+        .flatMap(s => s.stories)
+        .find(s => s.id === newStoryId);
+      destStoryTitle = destStory?.title;
+    }
     
     const updateData: any = {
       status: newStatus,
@@ -755,18 +765,49 @@ export function useSupabaseData() {
 
     if (error) throw error;
     
-    // Send Teams notification for status change
-    sendTeamsNotification(project?.webhookUrl, webhookUser,
-      'task_status_changed',
-      { 
-        entityType: 'task', 
-        entityName: existingTask?.title || 'Taak',
-        oldValue: existingTask?.status,
-        newValue: newStatus,
-        additionalInfo: storyTitle ? `Story: ${storyTitle}` : undefined
-      },
-      project?.name || 'Project'
-    );
+    // Determine notification type: status change, story move, or both
+    const statusChanged = existingTask?.status !== newStatus;
+    const storyChanged = newStoryId && newStoryId !== existingTask?.storyId;
+    
+    if (storyChanged && statusChanged) {
+      // Both status and story changed
+      sendTeamsNotification(project?.webhookUrl, webhookUser,
+        'task_moved',
+        { 
+          entityType: 'task', 
+          entityName: existingTask?.title || 'Taak',
+          oldValue: sourceStoryTitle,
+          newValue: destStoryTitle,
+          additionalInfo: `Status: ${existingTask?.status} → ${newStatus}`
+        },
+        project?.name || 'Project'
+      );
+    } else if (storyChanged) {
+      // Only story changed (task moved between stories)
+      sendTeamsNotification(project?.webhookUrl, webhookUser,
+        'task_moved',
+        { 
+          entityType: 'task', 
+          entityName: existingTask?.title || 'Taak',
+          oldValue: sourceStoryTitle,
+          newValue: destStoryTitle,
+        },
+        project?.name || 'Project'
+      );
+    } else if (statusChanged) {
+      // Only status changed
+      sendTeamsNotification(project?.webhookUrl, webhookUser,
+        'task_status_changed',
+        { 
+          entityType: 'task', 
+          entityName: existingTask?.title || 'Taak',
+          oldValue: existingTask?.status,
+          newValue: newStatus,
+          additionalInfo: sourceStoryTitle ? `Story: ${sourceStoryTitle}` : undefined
+        },
+        project?.name || 'Project'
+      );
+    }
 
     await fetchData();
   };
