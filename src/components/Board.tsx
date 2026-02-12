@@ -584,7 +584,7 @@ export default function Board() {
         <div className="flex gap-4 mb-4 sticky top-0 z-10 bg-gradient-to-br from-gray-100 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 py-2">
           {/* Spacer for Story Card Column */}
           <div className="min-w-[280px] max-w-[280px] flex-shrink-0">
-            <div className="flex items-center justify-between px-4">
+            <div className="flex flex-col gap-1 px-4">
               <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                 {t.board.userStories}
               </h2>
