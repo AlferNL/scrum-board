@@ -58,6 +58,7 @@ function transformStory(dbStory: any): Story {
     assignee: dbStory.users ? transformUser(dbStory.users) : undefined,
     tasks: (dbStory.tasks || []).map(transformTask),
     acceptanceCriteria: dbStory.acceptance_criteria || [],
+    definitionOfDone: dbStory.definition_of_done || [],
     createdAt: new Date(dbStory.created_at),
     updatedAt: new Date(dbStory.updated_at),
   };
@@ -120,6 +121,7 @@ function transformProject(dbProject: any): Project {
     members,
     sprints: (dbProject.sprints || []).map(transformSprint),
     columns,
+    defaultDefinitionOfDone: dbProject.default_definition_of_done || [],
     createdAt: new Date(dbProject.created_at),
     updatedAt: new Date(dbProject.updated_at),
   };
@@ -212,6 +214,7 @@ export function useSupabaseData() {
         description: projectData.description,
         color: projectData.color,
         webhook_url: projectData.webhookUrl,
+        default_definition_of_done: projectData.defaultDefinitionOfDone || [],
       })
       .select()
       .single();
@@ -273,6 +276,7 @@ export function useSupabaseData() {
     if (projectData.color !== undefined) updateData.color = projectData.color;
     if (projectData.columns !== undefined) updateData.columns = JSON.stringify(projectData.columns);
     if (projectData.webhookUrl !== undefined) updateData.webhook_url = projectData.webhookUrl;
+    if (projectData.defaultDefinitionOfDone !== undefined) updateData.default_definition_of_done = projectData.defaultDefinitionOfDone;
 
     const { error } = await supabase
       .from('projects')
@@ -483,8 +487,13 @@ export function useSupabaseData() {
   // ============================================
 
   const createStory = async (storyData: Partial<Story> & { sprintId: string }) => {
-    // Find project for webhook
+    // Find project for webhook and default DoD
     const project = projects.find(p => p.sprints?.some(s => s.id === storyData.sprintId));
+    
+    // Auto-populate Definition of Done from project defaults if not provided
+    const definitionOfDone = storyData.definitionOfDone && storyData.definitionOfDone.length > 0
+      ? storyData.definitionOfDone
+      : (project?.defaultDefinitionOfDone || []).map(text => ({ text, completed: false }));
     
     const { data, error } = await supabase
       .from('stories')
@@ -497,6 +506,7 @@ export function useSupabaseData() {
         status: storyData.status || 'OPEN',
         assignee_id: storyData.assignee?.id || null,
         acceptance_criteria: storyData.acceptanceCriteria || [],
+        definition_of_done: definitionOfDone,
       })
       .select()
       .single();
@@ -529,6 +539,7 @@ export function useSupabaseData() {
         status: storyData.status,
         assignee_id: storyData.assignee?.id || null,
         acceptance_criteria: storyData.acceptanceCriteria || [],
+        definition_of_done: storyData.definitionOfDone || [],
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);

@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS projects (
   description TEXT,
   color TEXT DEFAULT '#3B82F6',
   columns JSONB,
+  default_definition_of_done TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -61,12 +62,15 @@ CREATE TABLE IF NOT EXISTS stories (
   status TEXT DEFAULT 'OPEN',
   assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
   acceptance_criteria TEXT[] DEFAULT '{}',
+  definition_of_done JSONB DEFAULT '[]',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Add acceptance_criteria to existing stories table (run if table already exists)
 -- ALTER TABLE stories ADD COLUMN IF NOT EXISTS acceptance_criteria TEXT[] DEFAULT '{}';
+-- ALTER TABLE stories ADD COLUMN IF NOT EXISTS definition_of_done JSONB DEFAULT '[]';
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS default_definition_of_done TEXT[] DEFAULT '{}';
 
 -- ============================================
 -- Tasks table

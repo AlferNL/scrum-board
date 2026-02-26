@@ -46,9 +46,11 @@ export default function ProjectModal({
     color: PROJECT_COLORS[0],
     webhookUrl: '',
     teamMemberIds: [] as string[],
+    defaultDefinitionOfDone: [] as string[],
   });
   const [newMemberUserId, setNewMemberUserId] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<ProjectRole>('MEMBER');
+  const [newDodItem, setNewDodItem] = useState('');
 
   const isEditing = !!project;
 
@@ -60,6 +62,7 @@ export default function ProjectModal({
         color: project.color,
         webhookUrl: project.webhookUrl || '',
         teamMemberIds: project.teamMembers.map((u) => u.id),
+        defaultDefinitionOfDone: project.defaultDefinitionOfDone || [],
       });
     } else {
       setFormData({
@@ -68,8 +71,10 @@ export default function ProjectModal({
         color: PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)],
         webhookUrl: '',
         teamMemberIds: [],
+        defaultDefinitionOfDone: [],
       });
     }
+    setNewDodItem('');
   }, [project, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,6 +88,7 @@ export default function ProjectModal({
       description: formData.description,
       color: formData.color,
       webhookUrl: formData.webhookUrl || undefined,
+      defaultDefinitionOfDone: formData.defaultDefinitionOfDone,
       teamMembers,
     });
     
@@ -235,6 +241,86 @@ export default function ProjectModal({
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {t.modal.webhookDescription}
             </p>
+          </div>
+
+          {/* Default Definition of Done */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t.modal.defaultDefinitionOfDone}
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              {t.modal.defaultDodDescription}
+            </p>
+            
+            {/* Current DoD items */}
+            {formData.defaultDefinitionOfDone.length > 0 && (
+              <div className="space-y-1.5 mb-2">
+                {formData.defaultDefinitionOfDone.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
+                  >
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{item}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({
+                        ...formData,
+                        defaultDefinitionOfDone: formData.defaultDefinitionOfDone.filter((_, i) => i !== index),
+                      })}
+                      className="p-0.5 text-gray-400 hover:text-red-500 rounded transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Add new DoD item */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newDodItem}
+                onChange={(e) => setNewDodItem(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newDodItem.trim()) {
+                    e.preventDefault();
+                    setFormData({
+                      ...formData,
+                      defaultDefinitionOfDone: [...formData.defaultDefinitionOfDone, newDodItem.trim()],
+                    });
+                    setNewDodItem('');
+                  }
+                }}
+                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           placeholder-gray-400 dark:placeholder-gray-500"
+                placeholder={t.modal.defaultDodPlaceholder}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newDodItem.trim()) {
+                    setFormData({
+                      ...formData,
+                      defaultDefinitionOfDone: [...formData.defaultDefinitionOfDone, newDodItem.trim()],
+                    });
+                    setNewDodItem('');
+                  }
+                }}
+                disabled={!newDodItem.trim()}
+                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 
+                           disabled:dark:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {/* Team Members / Project Members */}

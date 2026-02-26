@@ -784,6 +784,7 @@ export default function Board() {
         onSave={handleSaveStory}
         onDelete={handleDeleteStory}
         users={users}
+        defaultDefinitionOfDone={currentProject.defaultDefinitionOfDone}
       />
 
       {/* Sprint Modal */}

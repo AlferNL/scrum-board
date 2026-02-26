@@ -121,6 +121,7 @@ export interface Story {
   assignee?: User;
   tasks: Task[];
   acceptanceCriteria?: string[];
+  definitionOfDone?: { text: string; completed: boolean }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -167,6 +168,7 @@ export interface Project {
   members?: ProjectMember[]; // Project members with roles
   sprints: Sprint[];
   columns?: Column[]; // Custom columns for this project
+  defaultDefinitionOfDone?: string[]; // Default DoD items for new stories
   createdAt: Date;
   updatedAt: Date;
 }

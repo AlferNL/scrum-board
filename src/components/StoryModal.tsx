@@ -12,6 +12,7 @@ interface StoryModalProps {
   onSave: (story: Partial<Story> & { sprintId: string }) => void;
   onDelete?: (storyId: string) => void;
   users?: User[];
+  defaultDefinitionOfDone?: string[];
 }
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
@@ -29,6 +30,7 @@ export default function StoryModal({
   onSave,
   onDelete,
   users = [],
+  defaultDefinitionOfDone = [],
 }: StoryModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -37,8 +39,10 @@ export default function StoryModal({
     status: 'OPEN' as StoryStatus,
     assigneeId: '',
     acceptanceCriteria: [] as string[],
+    definitionOfDone: [] as { text: string; completed: boolean }[],
   });
   const [newCriterion, setNewCriterion] = useState('');
+  const [newDodItem, setNewDodItem] = useState('');
 
   const isEditing = !!story;
 
@@ -51,6 +55,7 @@ export default function StoryModal({
         status: story.status || 'OPEN',
         assigneeId: story.assignee?.id || '',
         acceptanceCriteria: story.acceptanceCriteria || [],
+        definitionOfDone: story.definitionOfDone || [],
       });
     } else {
       setFormData({
@@ -60,10 +65,12 @@ export default function StoryModal({
         status: 'OPEN',
         assigneeId: '',
         acceptanceCriteria: [],
+        definitionOfDone: defaultDefinitionOfDone.map(text => ({ text, completed: false })),
       });
     }
     setNewCriterion('');
-  }, [story, isOpen]);
+    setNewDodItem('');
+  }, [story, isOpen, defaultDefinitionOfDone]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +87,7 @@ export default function StoryModal({
       storyPoints: 1, // Default value, not used for display anymore
       assignee,
       acceptanceCriteria: formData.acceptanceCriteria,
+      definitionOfDone: formData.definitionOfDone,
     });
     
     onClose();
@@ -120,7 +128,7 @@ export default function StoryModal({
       />
       
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -271,6 +279,104 @@ export default function StoryModal({
               <button
                 type="button"
                 onClick={addCriterion}
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg 
+                           transition-colors text-sm font-medium"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Definition of Done */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t.modal.definitionOfDone}
+            </label>
+            {/* Existing DoD items with checkboxes */}
+            {formData.definitionOfDone.length > 0 && (
+              <ul className="mb-2 space-y-1">
+                {formData.definitionOfDone.map((item, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 
+                                             bg-gray-50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => {
+                        const updated = [...formData.definitionOfDone];
+                        updated[index] = { ...updated[index], completed: !updated[index].completed };
+                        setFormData({ ...formData, definitionOfDone: updated });
+                      }}
+                      className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded 
+                                 focus:ring-green-500 dark:bg-gray-600 dark:border-gray-500"
+                    />
+                    <span className={`flex-1 ${item.completed ? 'line-through text-gray-400 dark:text-gray-500' : ''}`}>
+                      {item.text}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({
+                        ...formData,
+                        definitionOfDone: formData.definitionOfDone.filter((_, i) => i !== index),
+                      })}
+                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1"
+                      title={t.common.delete}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* DoD progress */}
+            {formData.definitionOfDone.length > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  <span>{formData.definitionOfDone.filter(d => d.completed).length}/{formData.definitionOfDone.length} voltooid</span>
+                  <span>{Math.round((formData.definitionOfDone.filter(d => d.completed).length / formData.definitionOfDone.length) * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                  <div 
+                    className="bg-green-500 h-1.5 rounded-full transition-all"
+                    style={{ width: `${(formData.definitionOfDone.filter(d => d.completed).length / formData.definitionOfDone.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {/* Add new DoD item */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newDodItem}
+                onChange={(e) => setNewDodItem(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newDodItem.trim()) {
+                    e.preventDefault();
+                    setFormData({
+                      ...formData,
+                      definitionOfDone: [...formData.definitionOfDone, { text: newDodItem.trim(), completed: false }],
+                    });
+                    setNewDodItem('');
+                  }
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                placeholder={t.modal.definitionOfDonePlaceholder}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newDodItem.trim()) {
+                    setFormData({
+                      ...formData,
+                      definitionOfDone: [...formData.definitionOfDone, { text: newDodItem.trim(), completed: false }],
+                    });
+                    setNewDodItem('');
+                  }
+                }}
                 className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg 
                            transition-colors text-sm font-medium"
               >

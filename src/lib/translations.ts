@@ -35,6 +35,7 @@ export const t = {
     delete: 'Verwijderen',
     addTask: 'Taak Toevoegen',
     acceptanceCriteria: 'Acceptatiecriteria',
+    definitionOfDone: 'Definition of Done',
   },
 
   // Task Card
@@ -109,6 +110,12 @@ export const t = {
     // Acceptance Criteria
     acceptanceCriteria: 'Acceptatiecriteria',
     acceptanceCriteriaPlaceholder: 'Voeg acceptatiecriterium toe...',
+    // Definition of Done
+    definitionOfDone: 'Definition of Done',
+    definitionOfDonePlaceholder: 'Voeg DoD item toe...',
+    defaultDefinitionOfDone: 'Standaard Definition of Done',
+    defaultDodPlaceholder: 'Voeg standaard DoD item toe...',
+    defaultDodDescription: 'Deze items worden automatisch toegevoegd aan elke nieuwe User Story',
     // Project members
     projectMembers: 'Projectleden',
     addMember: 'Lid Toevoegen',
