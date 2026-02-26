@@ -218,14 +218,35 @@ export function useSupabaseData() {
 
     if (error) throw error;
 
-    // Add team members
+    // Always add the creator as PRODUCT_OWNER
+    const creatorId = webhookUser?.id;
+    const teamMemberIds = new Set(projectData.teamMembers?.map(u => u.id) || []);
+    
+    // Build member list: creator as PO + selected team members
+    const membersToInsert = [];
+    if (creatorId) {
+      membersToInsert.push({
+        project_id: data.id,
+        user_id: creatorId,
+        role: 'PRODUCT_OWNER',
+      });
+    }
+    
+    // Add other selected team members (skip if creator is already included)
     if (projectData.teamMembers?.length) {
-      await supabase.from('project_members').insert(
-        projectData.teamMembers.map(u => ({
-          project_id: data.id,
-          user_id: u.id,
-        }))
-      );
+      for (const u of projectData.teamMembers) {
+        if (u.id !== creatorId) {
+          membersToInsert.push({
+            project_id: data.id,
+            user_id: u.id,
+            role: 'MEMBER',
+          });
+        }
+      }
+    }
+    
+    if (membersToInsert.length > 0) {
+      await supabase.from('project_members').insert(membersToInsert);
     }
 
     // Send Teams notification
