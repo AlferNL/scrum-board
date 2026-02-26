@@ -14,6 +14,8 @@ interface ProjectSprintSelectorProps {
   onNewSprint: () => void;
   onNewProject: () => void;
   onEditProject: () => void;
+  canCreateProject?: boolean;
+  canCreateSprint?: boolean;
 }
 
 export default function ProjectSprintSelector({
@@ -26,6 +28,8 @@ export default function ProjectSprintSelector({
   onNewSprint,
   onNewProject,
   onEditProject,
+  canCreateProject = true,
+  canCreateSprint = true,
 }: ProjectSprintSelectorProps) {
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [isSprintDropdownOpen, setIsSprintDropdownOpen] = useState(false);
@@ -131,20 +135,22 @@ export default function ProjectSprintSelector({
                 Project Instellingen
               </button>
               
-              {/* Add New Project */}
-              <button
-                onClick={() => {
-                  onNewProject();
-                  setIsProjectDropdownOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 
-                           transition-colors text-blue-600 dark:text-blue-400 text-sm font-medium"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                {t.menu.newProject}
-              </button>
+              {/* Add New Project - only for ADMINs */}
+              {canCreateProject && (
+                <button
+                  onClick={() => {
+                    onNewProject();
+                    setIsProjectDropdownOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 
+                             transition-colors text-blue-600 dark:text-blue-400 text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  {t.menu.newProject}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -252,19 +258,21 @@ export default function ProjectSprintSelector({
                 </svg>
                 {t.menu.editSprint}
               </button>
-              <button
-                onClick={() => {
-                  onNewSprint();
-                  setIsSprintDropdownOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 
-                           transition-colors text-blue-600 dark:text-blue-400 text-sm font-medium"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                {t.menu.newSprint}
-              </button>
+              {canCreateSprint && (
+                <button
+                  onClick={() => {
+                    onNewSprint();
+                    setIsSprintDropdownOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 
+                             transition-colors text-blue-600 dark:text-blue-400 text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  {t.menu.newSprint}
+                </button>
+              )}
             </div>
           </div>
         )}

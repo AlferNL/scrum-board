@@ -23,6 +23,8 @@ interface BoardHeaderProps {
   onNewSprint: () => void;
   onNewProject: () => void;
   onEditProject: () => void;
+  canCreateProject?: boolean;
+  canCreateSprint?: boolean;
 }
 
 export default function BoardHeader({
@@ -40,6 +42,8 @@ export default function BoardHeader({
   onNewSprint,
   onNewProject,
   onEditProject,
+  canCreateProject,
+  canCreateSprint,
 }: BoardHeaderProps) {
   const { theme, toggleTheme, isDark } = useTheme();
   const { permissions } = useAuth();
@@ -87,6 +91,8 @@ export default function BoardHeader({
               onNewSprint={onNewSprint}
               onNewProject={onNewProject}
               onEditProject={onEditProject}
+              canCreateProject={canCreateProject}
+              canCreateSprint={canCreateSprint}
             />
           </div>
 

@@ -440,12 +440,14 @@ export default function Board() {
           </div>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">{t.project.noProjects}</p>
           <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={handleAddProject}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              {t.menu.newProject}
-            </button>
+            {permissions.canEditProjects && (
+              <button
+                onClick={handleAddProject}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                {t.menu.newProject}
+              </button>
+            )}
             <Link
               href="/admin"
               className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
@@ -497,12 +499,14 @@ export default function Board() {
                 </select>
               )}
             </div>
-            <button
-              onClick={handleAddProject}
-              className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
-            >
-              + Nieuw Project
-            </button>
+            {permissions.canEditProjects && (
+              <button
+                onClick={handleAddProject}
+                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+              >
+                + Nieuw Project
+              </button>
+            )}
           </div>
         </div>
 
@@ -520,12 +524,14 @@ export default function Board() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Maak een sprint aan om te beginnen met het plannen van werk.
             </p>
-            <button
-              onClick={handleAddSprint}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              {t.menu.newSprint}
-            </button>
+            {permissions.canEditSprints && (
+              <button
+                onClick={handleAddSprint}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                {t.menu.newSprint}
+              </button>
+            )}
           </div>
         </div>
         
@@ -583,6 +589,8 @@ export default function Board() {
         onNewSprint={handleAddSprint}
         onNewProject={handleAddProject}
         onEditProject={handleEditProject}
+        canCreateProject={permissions.canEditProjects}
+        canCreateSprint={permissions.canEditSprints}
       />
 
       {/* Main Board Area */}
