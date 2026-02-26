@@ -46,7 +46,7 @@ export default function Board() {
   } = useSupabaseData();
 
   // Filter projects: ADMINs see all, others only see projects they're a member of
-  const projects = currentUser?.role === 'ADMIN'
+  const projects = currentUser?.userRole === 'ADMIN'
     ? allProjects
     : allProjects.filter(p => 
         p.members?.some(m => m.userId === currentUser?.id)
