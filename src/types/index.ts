@@ -120,7 +120,6 @@ export interface Story {
   status: StoryStatus; // Story workflow status
   assignee?: User;
   tasks: Task[];
-  acceptanceCriteria?: string[];
   definitionOfDone?: { text: string; completed: boolean }[];
   createdAt: Date;
   updatedAt: Date;

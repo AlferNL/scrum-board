@@ -57,7 +57,6 @@ function transformStory(dbStory: any): Story {
     status: dbStory.status || 'OPEN',
     assignee: dbStory.users ? transformUser(dbStory.users) : undefined,
     tasks: (dbStory.tasks || []).map(transformTask),
-    acceptanceCriteria: dbStory.acceptance_criteria || [],
     definitionOfDone: dbStory.definition_of_done || [],
     createdAt: new Date(dbStory.created_at),
     updatedAt: new Date(dbStory.updated_at),
@@ -505,7 +504,6 @@ export function useSupabaseData() {
         priority: storyData.priority,
         status: storyData.status || 'OPEN',
         assignee_id: storyData.assignee?.id || null,
-        acceptance_criteria: storyData.acceptanceCriteria || [],
         definition_of_done: definitionOfDone,
       })
       .select()
@@ -538,7 +536,6 @@ export function useSupabaseData() {
         priority: storyData.priority,
         status: storyData.status,
         assignee_id: storyData.assignee?.id || null,
-        acceptance_criteria: storyData.acceptanceCriteria || [],
         definition_of_done: storyData.definitionOfDone || [],
         updated_at: new Date().toISOString(),
       })

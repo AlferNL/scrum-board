@@ -34,7 +34,6 @@ export const t = {
     edit: 'Bewerken',
     delete: 'Verwijderen',
     addTask: 'Taak Toevoegen',
-    acceptanceCriteria: 'Acceptatiecriteria',
     definitionOfDone: 'Definition of Done',
   },
 
@@ -108,8 +107,6 @@ export const t = {
     selectSprint: 'Selecteer Sprint',
     allSprints: 'Alle Sprints',
     // Acceptance Criteria
-    acceptanceCriteria: 'Acceptatiecriteria',
-    acceptanceCriteriaPlaceholder: 'Voeg acceptatiecriterium toe...',
     // Definition of Done
     definitionOfDone: 'Definition of Done',
     definitionOfDonePlaceholder: 'Voeg DoD item toe...',

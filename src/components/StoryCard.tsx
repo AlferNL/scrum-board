@@ -143,33 +143,6 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
         {story.description}
       </p>
 
-      {/* Acceptance Criteria */}
-      {story.acceptanceCriteria && story.acceptanceCriteria.length > 0 && (
-        <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {t.story.acceptanceCriteria} ({story.acceptanceCriteria.length})
-            </span>
-          </div>
-          <ul className="space-y-1">
-            {story.acceptanceCriteria.slice(0, 3).map((criterion, index) => (
-              <li key={index} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="line-clamp-1">{criterion}</span>
-              </li>
-            ))}
-            {story.acceptanceCriteria.length > 3 && (
-              <li className="text-xs text-gray-400 dark:text-gray-500 italic pl-4">
-                +{story.acceptanceCriteria.length - 3} {t.common.more}
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
-
       {/* Definition of Done */}
       {story.definitionOfDone && story.definitionOfDone.length > 0 && (
         <div className="mb-3 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800/50">
