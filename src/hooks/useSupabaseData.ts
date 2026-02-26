@@ -260,14 +260,45 @@ export function useSupabaseData() {
 
     if (error) throw error;
 
-    // Update team members (delete all, then re-add)
+    // Update team members only when explicitly provided (from create mode)
+    // For edit mode, use addProjectMember/updateProjectMemberRole/removeProjectMember instead
+    // to preserve existing roles
     if (projectData.teamMembers) {
-      await supabase.from('project_members').delete().eq('project_id', id);
-      if (projectData.teamMembers.length > 0) {
+      // Get existing members to preserve their roles
+      const { data: existingMembers } = await supabase
+        .from('project_members')
+        .select('user_id, role')
+        .eq('project_id', id);
+      
+      const existingMemberMap = new Map(
+        (existingMembers || []).map(m => [m.user_id, m.role])
+      );
+      
+      const newMemberIds = new Set(projectData.teamMembers.map(u => u.id));
+      
+      // Remove members that are no longer in the list
+      const membersToRemove = (existingMembers || [])
+        .filter(m => !newMemberIds.has(m.user_id))
+        .map(m => m.user_id);
+      
+      if (membersToRemove.length > 0) {
+        await supabase
+          .from('project_members')
+          .delete()
+          .eq('project_id', id)
+          .in('user_id', membersToRemove);
+      }
+      
+      // Add new members (preserve role if they already existed, default MEMBER for new)
+      const membersToAdd = projectData.teamMembers
+        .filter(u => !existingMemberMap.has(u.id));
+      
+      if (membersToAdd.length > 0) {
         await supabase.from('project_members').insert(
-          projectData.teamMembers.map(u => ({
+          membersToAdd.map(u => ({
             project_id: id,
             user_id: u.id,
+            role: 'MEMBER',
           }))
         );
       }

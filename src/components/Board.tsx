@@ -22,7 +22,7 @@ export default function Board() {
   
   // Supabase data hook
   const {
-    projects,
+    projects: allProjects,
     users,
     loading,
     error,
@@ -44,6 +44,13 @@ export default function Board() {
     updateProjectMemberRole,
     removeProjectMember,
   } = useSupabaseData();
+
+  // Filter projects: ADMINs see all, others only see projects they're a member of
+  const projects = currentUser?.role === 'ADMIN'
+    ? allProjects
+    : allProjects.filter(p => 
+        p.members?.some(m => m.userId === currentUser?.id)
+      );
 
   // Project and Sprint selection state
   const [currentProjectId, setCurrentProjectId] = useState<string>('');
