@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Sprint, Story, Task, TaskStatus, COLUMNS, Project, Column, StoryStatus, STORY_STATUS_CONFIG } from '@/types';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -52,21 +53,27 @@ export default function Board() {
         p.members?.some(m => m.userId === currentUser?.id)
       );
 
+  // Read project from URL query parameter (e.g., from backlog navigation)
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get('project');
+
   // Project and Sprint selection state
   const [currentProjectId, setCurrentProjectId] = useState<string>('');
   const [currentSprintId, setCurrentSprintId] = useState<string>('');
   
-  // Set initial project/sprint when data loads
+  // Set initial project/sprint when data loads (prefer URL param)
   useEffect(() => {
     if (projects.length > 0 && !currentProjectId) {
-      const firstProject = projects[0];
-      setCurrentProjectId(firstProject.id);
-      const activeSprint = firstProject.sprints.find(s => s.isActive) || firstProject.sprints[0];
+      const targetProject = urlProjectId
+        ? projects.find(p => p.id === urlProjectId) || projects[0]
+        : projects[0];
+      setCurrentProjectId(targetProject.id);
+      const activeSprint = targetProject.sprints.find(s => s.isActive) || targetProject.sprints[0];
       if (activeSprint) {
         setCurrentSprintId(activeSprint.id);
       }
     }
-  }, [projects, currentProjectId]);
+  }, [projects, currentProjectId, urlProjectId]);
 
   // Update sprint selection when project's sprints change (e.g., new sprint created)
   useEffect(() => {

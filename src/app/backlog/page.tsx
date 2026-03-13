@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useTheme } from '@/lib/ThemeContext';
@@ -12,20 +13,41 @@ import BacklogItemModal from '@/components/BacklogItemModal';
 
 const MOSCOW_ORDER: MoscowPriority[] = ['MUST', 'SHOULD', 'COULD', 'WONT'];
 
+type ViewMode = 'list' | 'board';
+
 export default function BacklogPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="text-gray-500 dark:text-gray-400">{t.common.loading}</div></div>}>
+      <BacklogContent />
+    </Suspense>
+  );
+}
+
+function BacklogContent() {
   const { isDark, toggleTheme } = useTheme();
   const { currentUser, signOut } = useAuth();
   const {
-    projects,
+    projects: allProjects,
     loading,
     createBacklogItem,
     updateBacklogItem,
     deleteBacklogItem,
   } = useSupabaseData();
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  // Filter projects: ADMINs see all, others only see projects they're a member of
+  const projects = useMemo(() => {
+    if (currentUser?.userRole === 'ADMIN') return allProjects;
+    return allProjects.filter(p => p.members?.some(m => m.userId === currentUser?.id));
+  }, [allProjects, currentUser]);
+
+  // Read project from URL query parameter
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get('project');
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(urlProjectId || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BacklogItem | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Auto-select first project if none selected
   const selectedProject = useMemo(() => {
@@ -105,7 +127,7 @@ export default function BacklogPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href="/"
+                href={`/?project=${selectedProject?.id || ''}`}
                 className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +190,7 @@ export default function BacklogPage() {
             </div>
           ) : (
             <>
-              {/* Project Info + Add Button */}
+              {/* Project Info + View Toggle + Add Button */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
@@ -178,18 +200,51 @@ export default function BacklogPage() {
                     {selectedProject.backlogItems?.length || 0} {t.backlog.items}
                   </p>
                 </div>
-                <button
-                  onClick={handleNew}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  {t.backlog.newItem}
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* View Toggle */}
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded-md transition-colors ${
+                        viewMode === 'list'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                      title={t.backlog.viewList}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('board')}
+                      className={`p-2 rounded-md transition-colors ${
+                        viewMode === 'board'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                      title={t.backlog.viewBoard}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleNew}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    {t.backlog.newItem}
+                  </button>
+                </div>
               </div>
 
-              {/* MoSCoW Groups */}
+              {/* MoSCoW Groups - List View */}
+              {viewMode === 'list' ? (
               <div className="space-y-6">
                 {MOSCOW_ORDER.map((priority) => {
                   const config = MOSCOW_CONFIG[priority];
@@ -231,6 +286,50 @@ export default function BacklogPage() {
                   );
                 })}
               </div>
+              ) : (
+              /* MoSCoW Groups - Board View (columns side by side) */
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {MOSCOW_ORDER.map((priority) => {
+                  const config = MOSCOW_CONFIG[priority];
+                  const items = groupedItems[priority];
+
+                  return (
+                    <div key={priority} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+                      {/* Column Header */}
+                      <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 ${config.bgColor}`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-bold ${config.color}`}>
+                            {config.label}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 bg-white/60 dark:bg-gray-900/40 rounded-full px-2 py-0.5">
+                            {items.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Column Items */}
+                      <div className="flex-1 p-2 space-y-2 min-h-[200px]">
+                        {items.length === 0 ? (
+                          <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
+                            {t.backlog.noItems}
+                          </div>
+                        ) : (
+                          items.map((item) => (
+                            <BacklogItemCard
+                              key={item.id}
+                              item={item}
+                              allStories={allStories}
+                              onEdit={handleEdit}
+                              onDelete={handleDelete}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              )}
             </>
           )}
         </main>
@@ -323,6 +422,64 @@ function BacklogItemRow({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ===== Backlog Item Card (Board view) ===== */
+function BacklogItemCard({
+  item,
+  allStories,
+  onEdit,
+  onDelete,
+}: {
+  item: BacklogItem;
+  allStories: Story[];
+  onEdit: (item: BacklogItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const linkedStories = allStories.filter(s => item.linkedStoryIds?.includes(s.id));
+
+  return (
+    <div
+      className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow cursor-pointer group"
+      onClick={() => onEdit(item)}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 flex-1">
+          {item.title}
+        </h4>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+          className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      {item.description && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+          {item.description}
+        </p>
+      )}
+      {linkedStories.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {linkedStories.map((story) => (
+            <span
+              key={story.id}
+              className="inline-flex items-center text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded px-1.5 py-0.5"
+            >
+              {story.title}
+            </span>
+          ))}
+        </div>
+      )}
+      {item.createdBy && (
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 truncate">
+          {item.createdBy.name}
+        </p>
+      )}
     </div>
   );
 }

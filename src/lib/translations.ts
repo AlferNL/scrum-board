@@ -207,6 +207,8 @@ export const t = {
     deleteConfirm: 'Weet je zeker dat je dit backlog item wilt verwijderen?',
     noStories: 'Geen stories beschikbaar',
     items: 'items',
+    viewList: 'Lijstweergave',
+    viewBoard: 'Bordweergave',
   },
 
   // Common
