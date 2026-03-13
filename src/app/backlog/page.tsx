@@ -7,9 +7,10 @@ import { useAuth } from '@/lib/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useTheme } from '@/lib/ThemeContext';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { BacklogItem, MoscowPriority, MOSCOW_CONFIG, Story } from '@/types';
+import { BacklogItem, MoscowPriority, MOSCOW_CONFIG, Story, Sprint } from '@/types';
 import { t } from '@/lib/translations';
 import BacklogItemModal from '@/components/BacklogItemModal';
+import StoryModal from '@/components/StoryModal';
 
 const MOSCOW_ORDER: MoscowPriority[] = ['MUST', 'SHOULD', 'COULD', 'WONT'];
 
@@ -28,10 +29,12 @@ function BacklogContent() {
   const { currentUser, signOut } = useAuth();
   const {
     projects: allProjects,
+    users,
     loading,
     createBacklogItem,
     updateBacklogItem,
     deleteBacklogItem,
+    createStory,
   } = useSupabaseData();
 
   // Filter projects: ADMINs see all, others only see projects they're a member of
@@ -48,6 +51,9 @@ function BacklogContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BacklogItem | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [storyModalOpen, setStoryModalOpen] = useState(false);
+  const [storyForBacklogItemId, setStoryForBacklogItemId] = useState<string | null>(null);
+  const [storySprintId, setStorySprintId] = useState<string>('');
 
   // Auto-select first project if none selected
   const selectedProject = useMemo(() => {
@@ -62,6 +68,12 @@ function BacklogContent() {
       setSelectedProjectId(projects[0].id);
     }
   }, [projects, selectedProjectId]);
+
+  // All sprints in the selected project (for sprint picker)
+  const allSprints: Sprint[] = useMemo(() => {
+    if (!selectedProject) return [];
+    return selectedProject.sprints || [];
+  }, [selectedProject]);
 
   // All stories from all sprints in the selected project (for linking)
   const allStories: Story[] = useMemo(() => {
@@ -109,6 +121,28 @@ function BacklogContent() {
   const handleNew = () => {
     setEditingItem(null);
     setIsModalOpen(true);
+  };
+
+  const handleCreateStoryForItem = (backlogItemId: string) => {
+    setStoryForBacklogItemId(backlogItemId);
+    // Default to active sprint or first sprint
+    const activeSprint = allSprints.find(s => s.isActive) || allSprints[0];
+    setStorySprintId(activeSprint?.id || '');
+    setStoryModalOpen(true);
+  };
+
+  const handleStorySave = async (storyData: Partial<Story> & { sprintId: string }) => {
+    const newStoryId = await createStory(storyData);
+    // Auto-link the new story to the backlog item
+    if (newStoryId && storyForBacklogItemId) {
+      const backlogItem = selectedProject?.backlogItems?.find(bi => bi.id === storyForBacklogItemId);
+      const existingIds = backlogItem?.linkedStoryIds || [];
+      await updateBacklogItem(storyForBacklogItemId, {
+        linkedStoryIds: [...existingIds, newStoryId],
+      });
+    }
+    setStoryModalOpen(false);
+    setStoryForBacklogItemId(null);
   };
 
   if (loading) {
@@ -278,6 +312,8 @@ function BacklogContent() {
                               allStories={allStories}
                               onEdit={handleEdit}
                               onDelete={handleDelete}
+                              onCreateStory={handleCreateStoryForItem}
+                              sprints={allSprints}
                             />
                           ))}
                         </div>
@@ -321,6 +357,8 @@ function BacklogContent() {
                               allStories={allStories}
                               onEdit={handleEdit}
                               onDelete={handleDelete}
+                              onCreateStory={handleCreateStoryForItem}
+                              sprints={allSprints}
                             />
                           ))
                         )}
@@ -334,13 +372,49 @@ function BacklogContent() {
           )}
         </main>
 
-        {/* Modal */}
+        {/* Backlog Item Modal */}
         <BacklogItemModal
           isOpen={isModalOpen}
           item={editingItem}
           allStories={allStories}
           onClose={() => { setIsModalOpen(false); setEditingItem(null); }}
           onSave={handleSave}
+        />
+
+        {/* Story Creation Modal (from backlog) */}
+        {storyModalOpen && allSprints.length > 0 && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30" onClick={() => setStoryModalOpen(false)} />
+            <div className="relative z-50 w-full max-w-lg mx-4">
+              {/* Sprint selector above the story modal */}
+              <div className="bg-indigo-600 text-white px-4 py-3 rounded-t-xl flex items-center gap-3">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="font-medium text-sm">{t.backlog.createStory}</span>
+                <span className="text-indigo-200 text-sm">—</span>
+                <select
+                  value={storySprintId}
+                  onChange={(e) => setStorySprintId(e.target.value)}
+                  className="bg-indigo-700 text-white border border-indigo-400 rounded px-2 py-1 text-sm flex-1"
+                >
+                  {allSprints.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} {s.isActive ? '(actief)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+        <StoryModal
+          isOpen={storyModalOpen && !!storySprintId}
+          sprintId={storySprintId}
+          onClose={() => { setStoryModalOpen(false); setStoryForBacklogItemId(null); }}
+          onSave={handleStorySave}
+          users={users}
+          defaultDefinitionOfDone={selectedProject?.defaultDefinitionOfDone}
         />
       </div>
     </AuthGuard>
@@ -353,13 +427,23 @@ function BacklogItemRow({
   allStories,
   onEdit,
   onDelete,
+  onCreateStory,
+  sprints,
 }: {
   item: BacklogItem;
   allStories: Story[];
   onEdit: (item: BacklogItem) => void;
   onDelete: (id: string) => void;
+  onCreateStory: (backlogItemId: string) => void;
+  sprints: Sprint[];
 }) {
   const linkedStories = allStories.filter(s => item.linkedStoryIds?.includes(s.id));
+
+  // Find sprint name for a story
+  const getSprintName = (story: Story) => {
+    const sprint = sprints.find(s => s.id === story.sprintId);
+    return sprint?.name;
+  };
 
   return (
     <div className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
@@ -377,17 +461,24 @@ function BacklogItemRow({
           {/* Linked Stories */}
           {linkedStories.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {linkedStories.map((story) => (
-                <span
-                  key={story.id}
-                  className="inline-flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded px-2 py-0.5"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  {story.title}
-                </span>
-              ))}
+              {linkedStories.map((story) => {
+                const sprintName = getSprintName(story);
+                const statusColor = story.status === 'DONE' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  : story.status === 'IN_PROGRESS' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                  : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+                return (
+                  <span
+                    key={story.id}
+                    className={`inline-flex items-center gap-1 text-xs rounded px-2 py-0.5 ${statusColor}`}
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    {story.title}
+                    {sprintName && <span className="opacity-60">({sprintName})</span>}
+                  </span>
+                );
+              })}
             </div>
           )}
 
@@ -402,6 +493,15 @@ function BacklogItemRow({
 
         {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => onCreateStory(item.id)}
+            className="p-1.5 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+            title={t.backlog.createStory}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
           <button
             onClick={() => onEdit(item)}
             className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
@@ -432,13 +532,22 @@ function BacklogItemCard({
   allStories,
   onEdit,
   onDelete,
+  onCreateStory,
+  sprints,
 }: {
   item: BacklogItem;
   allStories: Story[];
   onEdit: (item: BacklogItem) => void;
   onDelete: (id: string) => void;
+  onCreateStory: (backlogItemId: string) => void;
+  sprints: Sprint[];
 }) {
   const linkedStories = allStories.filter(s => item.linkedStoryIds?.includes(s.id));
+
+  const getSprintName = (story: Story) => {
+    const sprint = sprints.find(s => s.id === story.sprintId);
+    return sprint?.name;
+  };
 
   return (
     <div
@@ -449,14 +558,25 @@ function BacklogItemCard({
         <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 flex-1">
           {item.title}
         </h4>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-          className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onCreateStory(item.id); }}
+            className="p-1 text-gray-300 hover:text-green-500 dark:text-gray-500 dark:hover:text-green-400"
+            title={t.backlog.createStory}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+            className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
       {item.description && (
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
@@ -465,14 +585,21 @@ function BacklogItemCard({
       )}
       {linkedStories.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {linkedStories.map((story) => (
-            <span
-              key={story.id}
-              className="inline-flex items-center text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded px-1.5 py-0.5"
-            >
-              {story.title}
-            </span>
-          ))}
+          {linkedStories.map((story) => {
+            const sprintName = getSprintName(story);
+            const statusColor = story.status === 'DONE' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300'
+              : story.status === 'IN_PROGRESS' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-300'
+              : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300';
+            return (
+              <span
+                key={story.id}
+                className={`inline-flex items-center gap-0.5 text-xs rounded px-1.5 py-0.5 ${statusColor}`}
+              >
+                {story.title}
+                {sprintName && <span className="opacity-60 text-[10px]">({sprintName})</span>}
+              </span>
+            );
+          })}
         </div>
       )}
       {item.createdBy && (

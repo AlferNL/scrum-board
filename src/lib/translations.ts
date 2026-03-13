@@ -209,6 +209,10 @@ export const t = {
     items: 'items',
     viewList: 'Lijstweergave',
     viewBoard: 'Bordweergave',
+    createStory: 'Story Aanmaken',
+    storyCreatedFor: 'Story aangemaakt voor backlog item',
+    selectSprint: 'Selecteer Sprint',
+    inSprint: 'in',
   },
 
   // Common
