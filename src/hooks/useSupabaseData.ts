@@ -546,23 +546,30 @@ export function useSupabaseData() {
     return data.id;
   };
 
-  const updateStory = async (id: string, storyData: Partial<Story>) => {
+  const updateStory = async (id: string, storyData: Partial<Story> & { sprintId?: string }) => {
     // Find project and existing story for webhook
     const project = findProjectByStoryId(projects, id);
     const existingStory = projects.flatMap(p => p.sprints).flatMap(s => s.stories).find(s => s.id === id);
     
+    const updatePayload: Record<string, any> = {
+      title: storyData.title,
+      description: storyData.description,
+      story_points: storyData.storyPoints,
+      priority: storyData.priority,
+      status: storyData.status,
+      assignee_id: storyData.assignee?.id || null,
+      definition_of_done: storyData.definitionOfDone || [],
+      updated_at: new Date().toISOString(),
+    };
+
+    // Allow moving story to a different sprint
+    if (storyData.sprintId) {
+      updatePayload.sprint_id = storyData.sprintId;
+    }
+
     const { error } = await supabase
       .from('stories')
-      .update({
-        title: storyData.title,
-        description: storyData.description,
-        story_points: storyData.storyPoints,
-        priority: storyData.priority,
-        status: storyData.status,
-        assignee_id: storyData.assignee?.id || null,
-        definition_of_done: storyData.definitionOfDone || [],
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (error) throw error;

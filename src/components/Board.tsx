@@ -783,6 +783,7 @@ export default function Board() {
       <StoryModal
         story={editingStory}
         sprintId={currentSprint.id}
+        sprints={currentProject.sprints}
         isOpen={storyModalOpen}
         onClose={() => {
           setStoryModalOpen(false);

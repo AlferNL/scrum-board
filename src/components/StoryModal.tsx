@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Story, Priority, User, StoryStatus, STORY_STATUS_CONFIG } from '@/types';
+import { useState, useEffect, useRef } from 'react';
+import { Story, Sprint, Priority, User, StoryStatus, STORY_STATUS_CONFIG } from '@/types';
 import { t } from '@/lib/translations';
 
 interface StoryModalProps {
   story?: Story | null;
   sprintId: string;
+  sprints?: Sprint[];
   isOpen: boolean;
   onClose: () => void;
   onSave: (story: Partial<Story> & { sprintId: string }) => void;
@@ -25,6 +26,7 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
 export default function StoryModal({
   story,
   sprintId,
+  sprints = [],
   isOpen,
   onClose,
   onSave,
@@ -38,13 +40,22 @@ export default function StoryModal({
     priority: 'medium' as Priority,
     status: 'OPEN' as StoryStatus,
     assigneeId: '',
+    sprintId: sprintId,
     definitionOfDone: [] as { text: string; completed: boolean }[],
   });
   const [newDodItem, setNewDodItem] = useState('');
+  const prevIsOpenRef = useRef(false);
 
   const isEditing = !!story;
 
+  // Only initialize form data when the modal opens (isOpen transitions from false to true)
+  // This prevents resetting when the user switches browser tabs
   useEffect(() => {
+    const justOpened = isOpen && !prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (!justOpened) return;
+
     if (story) {
       setFormData({
         title: story.title,
@@ -52,6 +63,7 @@ export default function StoryModal({
         priority: story.priority,
         status: story.status || 'OPEN',
         assigneeId: story.assignee?.id || '',
+        sprintId: story.sprintId || sprintId,
         definitionOfDone: story.definitionOfDone || [],
       });
     } else {
@@ -61,11 +73,12 @@ export default function StoryModal({
         priority: 'medium',
         status: 'OPEN',
         assigneeId: '',
+        sprintId: sprintId,
         definitionOfDone: defaultDefinitionOfDone.map(text => ({ text, completed: false })),
       });
     }
     setNewDodItem('');
-  }, [story, isOpen, defaultDefinitionOfDone]);
+  }, [story, isOpen, sprintId, defaultDefinitionOfDone]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +87,7 @@ export default function StoryModal({
     
     onSave({
       ...(story && { id: story.id, tasks: story.tasks }),
-      sprintId,
+      sprintId: formData.sprintId,
       title: formData.title,
       description: formData.description,
       priority: formData.priority,
@@ -202,6 +215,26 @@ export default function StoryModal({
                 ))}
               </select>
           </div>
+
+          {/* Sprint (only show when editing and there are multiple sprints) */}
+          {isEditing && sprints.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Sprint
+              </label>
+              <select
+                value={formData.sprintId}
+                onChange={(e) => setFormData({ ...formData, sprintId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {sprints.map((sprint) => (
+                  <option key={sprint.id} value={sprint.id}>{sprint.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Assignee */}
           <div>
