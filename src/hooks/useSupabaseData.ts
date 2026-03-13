@@ -932,8 +932,8 @@ export function useSupabaseData() {
     }
 
     sendTeamsNotification(project?.webhookUrl, webhookUser,
-      'task_created',
-      { entityType: 'task', entityName: itemData.title || 'Nieuw backlog item', additionalInfo: `MoSCoW: ${itemData.moscowPriority || 'COULD'}` },
+      'backlog_created',
+      { entityType: 'backlog', entityName: itemData.title || 'Nieuw backlog item', additionalInfo: `MoSCoW: ${itemData.moscowPriority || 'COULD'}` },
       project?.name || 'Project'
     );
 
@@ -977,8 +977,8 @@ export function useSupabaseData() {
     }
 
     sendTeamsNotification(project?.webhookUrl, webhookUser,
-      'task_updated',
-      { entityType: 'task', entityName: itemData.title || 'Backlog item' },
+      'backlog_updated',
+      { entityType: 'backlog', entityName: itemData.title || 'Backlog item', additionalInfo: itemData.moscowPriority ? `MoSCoW: ${itemData.moscowPriority}` : undefined },
       project?.name || 'Project'
     );
 
@@ -993,8 +993,8 @@ export function useSupabaseData() {
     if (error) throw error;
 
     sendTeamsNotification(project?.webhookUrl, webhookUser,
-      'task_deleted',
-      { entityType: 'task', entityName: item?.title || 'Backlog item' },
+      'backlog_deleted',
+      { entityType: 'backlog', entityName: item?.title || 'Backlog item' },
       project?.name || 'Project'
     );
 

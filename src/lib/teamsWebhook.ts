@@ -11,7 +11,8 @@ export type ActivityType =
   | 'sprint_created' | 'sprint_updated' | 'sprint_deleted'
   | 'story_created' | 'story_updated' | 'story_deleted' | 'story_status_changed'
   | 'task_created' | 'task_updated' | 'task_deleted' | 'task_status_changed' | 'task_moved'
-  | 'member_added' | 'member_removed' | 'member_role_changed';
+  | 'member_added' | 'member_removed' | 'member_role_changed'
+  | 'backlog_created' | 'backlog_updated' | 'backlog_deleted';
 
 // Dutch activity descriptions
 const ACTIVITY_DESCRIPTIONS: Record<ActivityType, string> = {
@@ -33,10 +34,13 @@ const ACTIVITY_DESCRIPTIONS: Record<ActivityType, string> = {
   member_added: 'heeft een nieuw lid toegevoegd',
   member_removed: 'heeft een lid verwijderd',
   member_role_changed: 'heeft de rol van een lid gewijzigd',
+  backlog_created: 'heeft een nieuw backlog item aangemaakt',
+  backlog_updated: 'heeft een backlog item bijgewerkt',
+  backlog_deleted: 'heeft een backlog item verwijderd',
 };
 
 interface ActivityDetails {
-  entityType: 'project' | 'sprint' | 'story' | 'task' | 'member';
+  entityType: 'project' | 'sprint' | 'story' | 'task' | 'member' | 'backlog';
   entityName: string;
   oldValue?: string;
   newValue?: string;
