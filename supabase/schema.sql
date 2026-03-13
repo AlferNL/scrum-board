@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS stories (
   priority TEXT DEFAULT 'medium',
   status TEXT DEFAULT 'OPEN',
   assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
   acceptance_criteria TEXT[] DEFAULT '{}',
   definition_of_done JSONB DEFAULT '[]',
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -70,7 +71,38 @@ CREATE TABLE IF NOT EXISTS stories (
 -- Add acceptance_criteria to existing stories table (run if table already exists)
 -- ALTER TABLE stories ADD COLUMN IF NOT EXISTS acceptance_criteria TEXT[] DEFAULT '{}';
 -- ALTER TABLE stories ADD COLUMN IF NOT EXISTS definition_of_done JSONB DEFAULT '[]';
+-- ALTER TABLE stories ADD COLUMN IF NOT EXISTS created_by_id UUID REFERENCES users(id) ON DELETE SET NULL;
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS default_definition_of_done TEXT[] DEFAULT '{}';
+
+-- ============================================
+-- Backlog Items table
+-- ============================================
+CREATE TABLE IF NOT EXISTS backlog_items (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  moscow_priority TEXT DEFAULT 'COULD',
+  created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT valid_moscow_priority CHECK (moscow_priority IN ('MUST', 'SHOULD', 'COULD', 'WONT'))
+);
+
+-- ============================================
+-- Backlog Item to Story linking table
+-- ============================================
+CREATE TABLE IF NOT EXISTS backlog_item_stories (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  backlog_item_id UUID REFERENCES backlog_items(id) ON DELETE CASCADE,
+  story_id UUID REFERENCES stories(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(backlog_item_id, story_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_backlog_items_project_id ON backlog_items(project_id);
+CREATE INDEX IF NOT EXISTS idx_backlog_item_stories_backlog_item_id ON backlog_item_stories(backlog_item_id);
+CREATE INDEX IF NOT EXISTS idx_backlog_item_stories_story_id ON backlog_item_stories(story_id);
 
 -- ============================================
 -- Tasks table

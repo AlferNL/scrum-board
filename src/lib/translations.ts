@@ -35,6 +35,7 @@ export const t = {
     delete: 'Verwijderen',
     addTask: 'Taak Toevoegen',
     definitionOfDone: 'Definition of Done',
+    createdBy: 'Aangemaakt door',
   },
 
   // Task Card
@@ -184,6 +185,28 @@ export const t = {
     noStories: 'Geen stories in deze sprint',
     addStories: 'Voeg user stories toe om te beginnen',
     noTasks: 'Geen taken',
+  },
+
+  // Backlog
+  backlog: {
+    title: 'Backlog',
+    newItem: 'Nieuw Backlog Item',
+    editItem: 'Backlog Item Bewerken',
+    itemTitle: 'Titel',
+    itemDescription: 'Beschrijving',
+    moscowPriority: 'MoSCoW Prioriteit',
+    linkedStories: 'Gekoppelde Stories',
+    linkStory: 'Koppel aan Story',
+    noItems: 'Geen backlog items',
+    addFirst: 'Voeg je eerste backlog item toe',
+    must: 'Must-have (cruciaal)',
+    should: 'Should-have (belangrijk)',
+    could: 'Could-have (wenselijk)',
+    wont: 'Won\'t-have (toekomst)',
+    selectProject: 'Selecteer een project om de backlog te bekijken',
+    deleteConfirm: 'Weet je zeker dat je dit backlog item wilt verwijderen?',
+    noStories: 'Geen stories beschikbaar',
+    items: 'items',
   },
 
   // Common

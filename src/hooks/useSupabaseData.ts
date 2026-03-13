@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Project, Sprint, Story, Task, User, UserRole, UserStatus, ProjectMember, ProjectRole } from '@/types';
+import { Project, Sprint, Story, Task, User, UserRole, UserStatus, ProjectMember, ProjectRole, BacklogItem, MoscowPriority } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import { 
   sendTeamsNotification, 
@@ -56,6 +56,7 @@ function transformStory(dbStory: any): Story {
     priority: dbStory.priority as Story['priority'],
     status: dbStory.status || 'OPEN',
     assignee: dbStory.users ? transformUser(dbStory.users) : undefined,
+    createdBy: dbStory.created_by ? transformUser(dbStory.created_by) : undefined,
     tasks: (dbStory.tasks || []).map(transformTask),
     definitionOfDone: dbStory.definition_of_done || [],
     createdAt: new Date(dbStory.created_at),
@@ -110,6 +111,19 @@ function transformProject(dbProject: any): Project {
     }
   }
 
+  // Transform backlog items
+  const backlogItems: BacklogItem[] = (dbProject.backlog_items || []).map((bi: any) => ({
+    id: bi.id,
+    projectId: dbProject.id,
+    title: bi.title,
+    description: bi.description || '',
+    moscowPriority: bi.moscow_priority as MoscowPriority,
+    linkedStoryIds: (bi.backlog_item_stories || []).map((bis: any) => bis.story_id),
+    createdBy: bi.created_by ? transformUser(bi.created_by) : undefined,
+    createdAt: new Date(bi.created_at),
+    updatedAt: new Date(bi.updated_at),
+  }));
+
   return {
     id: dbProject.id,
     name: dbProject.name,
@@ -121,6 +135,7 @@ function transformProject(dbProject: any): Project {
     sprints: (dbProject.sprints || []).map(transformSprint),
     columns,
     defaultDefinitionOfDone: dbProject.default_definition_of_done || [],
+    backlogItems,
     createdAt: new Date(dbProject.created_at),
     updatedAt: new Date(dbProject.updated_at),
   };
@@ -177,10 +192,18 @@ export function useSupabaseData() {
             stories (
               *,
               users:assignee_id (*),
+              created_by:created_by_id (*),
               tasks (
                 *,
                 users:assignee_id (*)
               )
+            )
+          ),
+          backlog_items (
+            *,
+            created_by:created_by_id (*),
+            backlog_item_stories (
+              story_id
             )
           )
         `)
@@ -505,6 +528,7 @@ export function useSupabaseData() {
         status: storyData.status || 'OPEN',
         assignee_id: storyData.assignee?.id || null,
         definition_of_done: definitionOfDone,
+        created_by_id: webhookUser?.id || null,
       })
       .select()
       .single();
@@ -874,6 +898,109 @@ export function useSupabaseData() {
     await fetchData();
   };
 
+  // ============================================
+  // Backlog Item CRUD
+  // ============================================
+
+  const createBacklogItem = async (projectId: string, itemData: Partial<BacklogItem>) => {
+    const project = projects.find(p => p.id === projectId);
+
+    const { data, error } = await supabase
+      .from('backlog_items')
+      .insert({
+        project_id: projectId,
+        title: itemData.title,
+        description: itemData.description || '',
+        moscow_priority: itemData.moscowPriority || 'COULD',
+        created_by_id: webhookUser?.id || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Link stories if provided
+    if (itemData.linkedStoryIds?.length) {
+      const links = itemData.linkedStoryIds.map(storyId => ({
+        backlog_item_id: data.id,
+        story_id: storyId,
+      }));
+      const { error: linkError } = await supabase
+        .from('backlog_item_stories')
+        .insert(links);
+      if (linkError) throw linkError;
+    }
+
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'task_created',
+      { entityType: 'task', entityName: itemData.title || 'Nieuw backlog item', additionalInfo: `MoSCoW: ${itemData.moscowPriority || 'COULD'}` },
+      project?.name || 'Project'
+    );
+
+    await fetchData();
+    return data.id;
+  };
+
+  const updateBacklogItem = async (id: string, itemData: Partial<BacklogItem>) => {
+    const project = projects.find(p => p.backlogItems?.some(bi => bi.id === id));
+
+    const { error } = await supabase
+      .from('backlog_items')
+      .update({
+        title: itemData.title,
+        description: itemData.description,
+        moscow_priority: itemData.moscowPriority,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    // Sync linked stories: remove old, insert new
+    if (itemData.linkedStoryIds !== undefined) {
+      const { error: deleteError } = await supabase
+        .from('backlog_item_stories')
+        .delete()
+        .eq('backlog_item_id', id);
+      if (deleteError) throw deleteError;
+
+      if (itemData.linkedStoryIds.length > 0) {
+        const links = itemData.linkedStoryIds.map(storyId => ({
+          backlog_item_id: id,
+          story_id: storyId,
+        }));
+        const { error: linkError } = await supabase
+          .from('backlog_item_stories')
+          .insert(links);
+        if (linkError) throw linkError;
+      }
+    }
+
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'task_updated',
+      { entityType: 'task', entityName: itemData.title || 'Backlog item' },
+      project?.name || 'Project'
+    );
+
+    await fetchData();
+  };
+
+  const deleteBacklogItem = async (id: string) => {
+    const project = projects.find(p => p.backlogItems?.some(bi => bi.id === id));
+    const item = project?.backlogItems?.find(bi => bi.id === id);
+
+    const { error } = await supabase.from('backlog_items').delete().eq('id', id);
+    if (error) throw error;
+
+    sendTeamsNotification(project?.webhookUrl, webhookUser,
+      'task_deleted',
+      { entityType: 'task', entityName: item?.title || 'Backlog item' },
+      project?.name || 'Project'
+    );
+
+    await fetchData();
+  };
+
   return {
     // Data
     projects,
@@ -909,5 +1036,10 @@ export function useSupabaseData() {
     updateTask,
     deleteTask,
     updateTaskStatus,
+
+    // Backlog Item CRUD
+    createBacklogItem,
+    updateBacklogItem,
+    deleteBacklogItem,
   };
 }

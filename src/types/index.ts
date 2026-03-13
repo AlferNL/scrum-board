@@ -119,6 +119,7 @@ export interface Story {
   priority: Priority;
   status: StoryStatus; // Story workflow status
   assignee?: User;
+  createdBy?: User;
   tasks: Task[];
   definitionOfDone?: { text: string; completed: boolean }[];
   createdAt: Date;
@@ -168,6 +169,36 @@ export interface Project {
   sprints: Sprint[];
   columns?: Column[]; // Custom columns for this project
   defaultDefinitionOfDone?: string[]; // Default DoD items for new stories
+  backlogItems?: BacklogItem[]; // Project backlog items
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * MoSCoW Priority for backlog items
+ */
+export type MoscowPriority = 'MUST' | 'SHOULD' | 'COULD' | 'WONT';
+
+export const MOSCOW_CONFIG: Record<MoscowPriority, { label: string; color: string; bgColor: string }> = {
+  MUST: { label: 'Must-have', color: 'text-red-700 dark:text-red-300', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  SHOULD: { label: 'Should-have', color: 'text-orange-700 dark:text-orange-300', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
+  COULD: { label: 'Could-have', color: 'text-blue-700 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  WONT: { label: 'Won\'t-have', color: 'text-gray-600 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-700' },
+};
+
+/**
+ * Backlog Item - represents a task/feature in the project backlog
+ * Can be linked to user stories in sprints
+ */
+export interface BacklogItem {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string;
+  moscowPriority: MoscowPriority;
+  linkedStoryIds?: string[];
+  linkedStories?: Story[];
+  createdBy?: User;
   createdAt: Date;
   updatedAt: Date;
 }
