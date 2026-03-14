@@ -15,7 +15,7 @@ interface StoryCardProps {
 
 export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask, onStatusChange }: StoryCardProps) {
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
-  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -135,27 +135,27 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
       </div>
 
       {/* Story Title */}
-      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
+      <h3 className={`text-base font-semibold text-gray-900 dark:text-gray-100 mb-2 ${expanded ? '' : 'line-clamp-2'}`}>
         {story.title}
       </h3>
 
-      {/* Story Description - expandable */}
+      {/* Story Description */}
       {story.description && (
-        <div className="mb-3 flex-grow">
-          <p className={`text-sm text-gray-500 dark:text-gray-400 ${descriptionExpanded ? '' : 'line-clamp-3'}`}>
-            {story.description}
-          </p>
-          {story.description.length > 80 && (
-            <button
-              type="button"
-              onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-              className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 
-                         font-medium mt-1 hover:underline"
-            >
-              {descriptionExpanded ? '▲ Minder tonen' : '▼ Meer lezen...'}
-            </button>
-          )}
-        </div>
+        <p className={`text-sm text-gray-500 dark:text-gray-400 mb-2 ${expanded ? '' : 'line-clamp-3'}`}>
+          {story.description}
+        </p>
+      )}
+
+      {/* Expand/collapse button */}
+      {(story.title.length > 60 || (story.description && story.description.length > 80)) && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 
+                     font-medium mb-3 hover:underline"
+        >
+          {expanded ? '▲ Minder tonen' : '▼ Meer lezen...'}
+        </button>
       )}
 
       {/* Definition of Done */}
