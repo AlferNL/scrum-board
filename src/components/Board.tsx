@@ -776,7 +776,7 @@ export default function Board() {
         }}
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
-        users={users}
+        users={currentProject.teamMembers}
       />
 
       {/* Story Modal */}
@@ -791,7 +791,7 @@ export default function Board() {
         }}
         onSave={handleSaveStory}
         onDelete={handleDeleteStory}
-        users={users}
+        users={currentProject.teamMembers}
         defaultDefinitionOfDone={currentProject.defaultDefinitionOfDone}
       />
 
