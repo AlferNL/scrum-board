@@ -139,15 +139,23 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
         {story.title}
       </h3>
 
-      {/* Story Description - click to expand/collapse */}
+      {/* Story Description - expandable */}
       {story.description && (
-        <p 
-          className={`text-sm text-gray-500 dark:text-gray-400 mb-3 flex-grow cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${descriptionExpanded ? '' : 'line-clamp-3'}`}
-          onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-          title={descriptionExpanded ? 'Klik om in te klappen' : 'Klik om volledig te lezen'}
-        >
-          {story.description}
-        </p>
+        <div className="mb-3 flex-grow">
+          <p className={`text-sm text-gray-500 dark:text-gray-400 ${descriptionExpanded ? '' : 'line-clamp-3'}`}>
+            {story.description}
+          </p>
+          {story.description.length > 80 && (
+            <button
+              type="button"
+              onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+              className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 
+                         font-medium mt-1 hover:underline"
+            >
+              {descriptionExpanded ? '▲ Minder tonen' : '▼ Meer lezen...'}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Definition of Done */}
