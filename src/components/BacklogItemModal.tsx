@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BacklogItem, MoscowPriority, MOSCOW_CONFIG, Story } from '@/types';
 import { t } from '@/lib/translations';
 
@@ -25,10 +25,16 @@ export default function BacklogItemModal({
   const [description, setDescription] = useState('');
   const [moscowPriority, setMoscowPriority] = useState<MoscowPriority>('COULD');
   const [linkedStoryIds, setLinkedStoryIds] = useState<string[]>([]);
+  const prevIsOpenRef = useRef(false);
 
   const isEditing = !!item;
 
   useEffect(() => {
+    const justOpened = isOpen && !prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (!justOpened) return;
+
     if (item) {
       setTitle(item.title);
       setDescription(item.description || '');
