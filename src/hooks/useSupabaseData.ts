@@ -132,7 +132,8 @@ function transformProject(dbProject: any): Project {
     webhookUrl: dbProject.webhook_url,
     teamMembers,
     members,
-    sprints: (dbProject.sprints || []).map(transformSprint),
+    sprints: (dbProject.sprints || []).map(transformSprint)
+      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime()),
     columns,
     defaultDefinitionOfDone: dbProject.default_definition_of_done || [],
     backlogItems,
