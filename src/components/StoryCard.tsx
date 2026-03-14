@@ -15,6 +15,7 @@ interface StoryCardProps {
 
 export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask, onStatusChange }: StoryCardProps) {
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -138,10 +139,16 @@ export default function StoryCard({ story, columns = COLUMNS, onEdit, onAddTask,
         {story.title}
       </h3>
 
-      {/* Story Description */}
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-3 flex-grow">
-        {story.description}
-      </p>
+      {/* Story Description - click to expand/collapse */}
+      {story.description && (
+        <p 
+          className={`text-sm text-gray-500 dark:text-gray-400 mb-3 flex-grow cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${descriptionExpanded ? '' : 'line-clamp-3'}`}
+          onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+          title={descriptionExpanded ? 'Klik om in te klappen' : 'Klik om volledig te lezen'}
+        >
+          {story.description}
+        </p>
+      )}
 
       {/* Definition of Done */}
       {story.definitionOfDone && story.definitionOfDone.length > 0 && (
