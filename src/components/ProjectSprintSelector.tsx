@@ -196,7 +196,9 @@ export default function ProjectSprintSelector({
               {t.sprint.title}
             </div>
             
-            {currentProject.sprints.map((sprint) => {
+            {[...currentProject.sprints]
+              .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+              .map((sprint) => {
               const isActive = sprint.isActive;
               const endDate = new Date(sprint.endDate);
               const today = new Date();

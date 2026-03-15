@@ -229,7 +229,9 @@ export default function StoryModal({
                            bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                {sprints.map((sprint) => (
+                {[...sprints]
+                  .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                  .map((sprint) => (
                   <option key={sprint.id} value={sprint.id}>{sprint.name}</option>
                 ))}
               </select>
