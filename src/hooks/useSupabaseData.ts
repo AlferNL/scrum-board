@@ -133,7 +133,7 @@ function transformProject(dbProject: any): Project {
     teamMembers,
     members,
     sprints: (dbProject.sprints || []).map(transformSprint)
-      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime()),
+      .sort((a: Sprint, b: Sprint) => a.startDate.getTime() - b.startDate.getTime()),
     columns,
     defaultDefinitionOfDone: dbProject.default_definition_of_done || [],
     backlogItems,
