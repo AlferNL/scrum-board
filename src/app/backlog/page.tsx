@@ -1,9 +1,8 @@
 'use client';
 
-import { Suspense, useState, useMemo, useCallback } from 'react';
+import { Suspense, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useAuth } from '@/lib/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useTheme } from '@/lib/ThemeContext';
@@ -83,6 +82,9 @@ function BacklogContent() {
     return selectedProject.sprints?.flatMap(s => s.stories || []) || [];
   }, [selectedProject]);
 
+  // Native drag-and-drop state
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [dragOverPriority, setDragOverPriority] = useState<MoscowPriority | null>(null);
   // Optimistic priority overrides for instant drag feedback
   const [priorityOverrides, setPriorityOverrides] = useState<Record<string, MoscowPriority>>({});
 
@@ -182,26 +184,48 @@ function BacklogContent() {
     }
   };
 
-  // Drag and drop between MoSCoW categories
-  const handleDragEnd = useCallback(async (result: DropResult) => {
-    const { draggableId, destination } = result;
-    if (!destination) return;
-    const newPriority = destination.droppableId as MoscowPriority;
-    const item = selectedProject?.backlogItems?.find(bi => bi.id === draggableId);
+  // Native drag-and-drop handlers
+  const handleNativeDragStart = useCallback((e: React.DragEvent, itemId: string) => {
+    e.dataTransfer.setData('text/plain', itemId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingItemId(itemId);
+  }, []);
+
+  const handleNativeDragOver = useCallback((e: React.DragEvent, priority: MoscowPriority) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverPriority(priority);
+  }, []);
+
+  const handleNativeDragLeave = useCallback(() => {
+    setDragOverPriority(null);
+  }, []);
+
+  const handleNativeDrop = useCallback(async (e: React.DragEvent, newPriority: MoscowPriority) => {
+    e.preventDefault();
+    const itemId = e.dataTransfer.getData('text/plain');
+    setDraggingItemId(null);
+    setDragOverPriority(null);
+    if (!itemId) return;
+    const item = selectedProject?.backlogItems?.find(bi => bi.id === itemId);
     if (!item || item.moscowPriority === newPriority) return;
-    // Optimistic update: move item visually immediately
-    setPriorityOverrides(prev => ({ ...prev, [draggableId]: newPriority }));
+    // Optimistic update
+    setPriorityOverrides(prev => ({ ...prev, [itemId]: newPriority }));
     try {
-      await updateBacklogItem(draggableId, { moscowPriority: newPriority });
+      await updateBacklogItem(itemId, { moscowPriority: newPriority });
     } finally {
-      // Clear override after DB sync (fetchData will have fresh data)
       setPriorityOverrides(prev => {
         const next = { ...prev };
-        delete next[draggableId];
+        delete next[itemId];
         return next;
       });
     }
   }, [selectedProject, updateBacklogItem]);
+
+  const handleNativeDragEnd = useCallback(() => {
+    setDraggingItemId(null);
+    setDragOverPriority(null);
+  }, []);
 
   const handleExportExcel = useCallback(() => {
     if (!selectedProject?.backlogItems?.length) return;
@@ -408,16 +432,22 @@ function BacklogContent() {
               </div>
               ) : (
               /* MoSCoW Groups - Board View (columns side by side, drag and drop) */
-              <DragDropContext onDragEnd={handleDragEnd}>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                 {MOSCOW_ORDER.map((priority) => {
                   const config = MOSCOW_CONFIG[priority];
                   const items = groupedItems[priority];
+                  const isOver = dragOverPriority === priority;
 
                   return (
-                    <div key={priority} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+                    <div
+                      key={priority}
+                      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col"
+                      onDragOver={(e) => handleNativeDragOver(e, priority)}
+                      onDragLeave={handleNativeDragLeave}
+                      onDrop={(e) => handleNativeDrop(e, priority)}
+                    >
                       {/* Column Header */}
-                      <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 ${config.bgColor}`}>
+                      <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 rounded-t-xl ${config.bgColor}`}>
                         <div className="flex items-center justify-between">
                           <span className={`text-sm font-bold ${config.color}`}>
                             {config.label}
@@ -428,52 +458,44 @@ function BacklogContent() {
                         </div>
                       </div>
 
-                      {/* Column Items - Droppable */}
-                      <Droppable droppableId={priority}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
-                            className={`flex-1 p-2 space-y-2 min-h-[200px] transition-colors ${
-                              snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                            }`}
-                          >
-                            {items.length === 0 && !snapshot.isDraggingOver ? (
-                              <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
-                                {t.backlog.noItems}
-                              </div>
-                            ) : (
-                              items.map((item, index) => (
-                                <Draggable key={item.id} draggableId={item.id} index={index}>
-                                  {(dragProvided) => (
-                                    <div
-                                      ref={dragProvided.innerRef}
-                                      {...dragProvided.draggableProps}
-                                      {...dragProvided.dragHandleProps}
-                                    >
-                                      <BacklogItemCard
-                                        item={item}
-                                        allStories={allStories}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                        onCreateStory={handleCreateStoryForItem}
-                                        onAddToActiveSprint={handleAddToActiveSprint}
-                                        sprints={allSprints}
-                                      />
-                                    </div>
-                                  )}
-                                </Draggable>
-                              ))
-                            )}
-                            {provided.placeholder}
+                      {/* Column Items - Drop Target */}
+                      <div
+                        className={`flex-1 p-2 space-y-2 min-h-[200px] transition-colors rounded-b-xl ${
+                          isOver ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-300 dark:ring-blue-500 ring-inset' : ''
+                        }`}
+                      >
+                        {items.length === 0 && !isOver ? (
+                          <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
+                            {t.backlog.noItems}
                           </div>
+                        ) : (
+                          items.map((item) => (
+                            <div
+                              key={item.id}
+                              draggable
+                              onDragStart={(e) => handleNativeDragStart(e, item.id)}
+                              onDragEnd={handleNativeDragEnd}
+                              className={`${
+                                draggingItemId === item.id ? 'opacity-50' : ''
+                              }`}
+                            >
+                              <BacklogItemCard
+                                item={item}
+                                allStories={allStories}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                onCreateStory={handleCreateStoryForItem}
+                                onAddToActiveSprint={handleAddToActiveSprint}
+                                sprints={allSprints}
+                              />
+                            </div>
+                          ))
                         )}
-                      </Droppable>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-              </DragDropContext>
               )}
             </>
           )}
