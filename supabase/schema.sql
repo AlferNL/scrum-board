@@ -82,11 +82,11 @@ CREATE TABLE IF NOT EXISTS backlog_items (
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  moscow_priority TEXT DEFAULT 'COULD',
+  moscow_priority TEXT DEFAULT 'UNKNOWN',
   created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT valid_moscow_priority CHECK (moscow_priority IN ('MUST', 'SHOULD', 'COULD', 'WONT'))
+  CONSTRAINT valid_moscow_priority CHECK (moscow_priority IN ('MUST', 'SHOULD', 'COULD', 'WONT', 'UNKNOWN'))
 );
 
 -- ============================================
