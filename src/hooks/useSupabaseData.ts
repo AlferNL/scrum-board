@@ -919,7 +919,7 @@ export function useSupabaseData() {
         project_id: projectId,
         title: itemData.title,
         description: itemData.description || '',
-        moscow_priority: itemData.moscowPriority || 'COULD',
+        moscow_priority: itemData.moscowPriority || 'UNKNOWN',
         created_by_id: webhookUser?.id || null,
       })
       .select()

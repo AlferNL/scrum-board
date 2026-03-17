@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Story, Task, Column, getTasksByStatus, TaskStatus, StoryStatus } from '@/types';
 import { Droppable } from '@hello-pangea/dnd';
 import { Permissions } from '@/lib/permissions';
@@ -38,18 +39,75 @@ interface SwimlaneRowProps {
   story: Story;
   columns: Column[];
   permissions: Permissions;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   onEditStory?: (story: Story) => void;
   onEditTask?: (task: Task) => void;
   onAddTask?: (storyId: string) => void;
   onStatusChange?: (storyId: string, status: StoryStatus) => void;
 }
 
-export default function SwimlaneRow({ story, columns, permissions, onEditStory, onEditTask, onAddTask, onStatusChange }: SwimlaneRowProps) {
+export default function SwimlaneRow({ story, columns, permissions, collapsed = false, onToggleCollapse, onEditStory, onEditTask, onAddTask, onStatusChange }: SwimlaneRowProps) {
   
+  // Collapsed view: compact row with just story title and task counts
+  if (collapsed) {
+    const completeStatuses = columns.filter(col => col.countsAsComplete).map(col => col.id);
+    const totalTasks = story.tasks.length;
+    const doneTasks = story.tasks.filter(task => completeStatuses.includes(task.status)).length;
+
+    return (
+      <div 
+        className="flex items-center gap-4 bg-white/50 dark:bg-gray-800/50 rounded-xl px-4 py-3 backdrop-blur-sm cursor-pointer hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors"
+        onClick={onToggleCollapse}
+      >
+        {/* Expand icon */}
+        <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Story title */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+            {story.title}
+          </h3>
+        </div>
+
+        {/* Task counts per column */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {columns.map((column) => {
+            const count = getTasksByStatus(story, column.id).length;
+            return (
+              <div key={column.id} className="flex items-center gap-1">
+                <div className={`w-2.5 h-2.5 rounded-full ${column.color}`} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{count}</span>
+              </div>
+            );
+          })}
+          <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
+            {doneTasks}/{totalTasks}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-4 min-h-[200px] bg-white/50 dark:bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm">
-      {/* Story Card - Left Side */}
-      <div className="flex-shrink-0">
+      {/* Collapse button + Story Card - Left Side */}
+      <div className="flex-shrink-0 flex flex-col">
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="mb-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 self-center"
+            title="Inklappen"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
         <StoryCard 
           story={story} 
           columns={columns}

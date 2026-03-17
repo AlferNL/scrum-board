@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BacklogItem, MoscowPriority, MOSCOW_CONFIG, Story } from '@/types';
 import { t } from '@/lib/translations';
 
-const MOSCOW_ORDER: MoscowPriority[] = ['MUST', 'SHOULD', 'COULD', 'WONT'];
+const MOSCOW_ORDER: MoscowPriority[] = ['UNKNOWN', 'MUST', 'SHOULD', 'COULD', 'WONT'];
 
 interface BacklogItemModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ export default function BacklogItemModal({
 }: BacklogItemModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [moscowPriority, setMoscowPriority] = useState<MoscowPriority>('COULD');
+  const [moscowPriority, setMoscowPriority] = useState<MoscowPriority>('UNKNOWN');
   const [linkedStoryIds, setLinkedStoryIds] = useState<string[]>([]);
   const prevIsOpenRef = useRef(false);
 
@@ -43,7 +43,7 @@ export default function BacklogItemModal({
     } else {
       setTitle('');
       setDescription('');
-      setMoscowPriority('COULD');
+      setMoscowPriority('UNKNOWN');
       setLinkedStoryIds([]);
     }
   }, [item, isOpen]);

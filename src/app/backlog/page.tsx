@@ -1,18 +1,20 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useAuth } from '@/lib/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useTheme } from '@/lib/ThemeContext';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { BacklogItem, MoscowPriority, MOSCOW_CONFIG, Story, Sprint } from '@/types';
 import { t } from '@/lib/translations';
+import * as XLSX from 'xlsx';
 import BacklogItemModal from '@/components/BacklogItemModal';
 import StoryModal from '@/components/StoryModal';
 
-const MOSCOW_ORDER: MoscowPriority[] = ['MUST', 'SHOULD', 'COULD', 'WONT'];
+const MOSCOW_ORDER: MoscowPriority[] = ['UNKNOWN', 'MUST', 'SHOULD', 'COULD', 'WONT'];
 
 type ViewMode = 'list' | 'board';
 
@@ -85,6 +87,7 @@ function BacklogContent() {
   const groupedItems = useMemo(() => {
     const items = selectedProject?.backlogItems || [];
     const grouped: Record<MoscowPriority, BacklogItem[]> = {
+      UNKNOWN: [],
       MUST: [],
       SHOULD: [],
       COULD: [],
@@ -144,6 +147,60 @@ function BacklogContent() {
     setStoryModalOpen(false);
     setStoryForBacklogItemId(null);
   };
+
+  // Direct placement into active sprint with default DoD
+  const handleAddToActiveSprint = async (backlogItemId: string) => {
+    const activeSprint = allSprints.find(s => s.isActive);
+    if (!activeSprint) {
+      alert('Geen actieve sprint gevonden');
+      return;
+    }
+    const backlogItem = selectedProject?.backlogItems?.find(bi => bi.id === backlogItemId);
+    if (!backlogItem) return;
+
+    const defaultDoD = (selectedProject?.defaultDefinitionOfDone || []).map(text => ({ text, completed: false }));
+    
+    const newStoryId = await createStory({
+      sprintId: activeSprint.id,
+      title: backlogItem.title,
+      description: backlogItem.description || '',
+      priority: 'medium',
+      status: 'OPEN',
+      storyPoints: 1,
+      definitionOfDone: defaultDoD,
+    });
+
+    if (newStoryId) {
+      const existingIds = backlogItem.linkedStoryIds || [];
+      await updateBacklogItem(backlogItemId, {
+        linkedStoryIds: [...existingIds, newStoryId],
+      });
+    }
+  };
+
+  // Drag and drop between MoSCoW categories
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    const { draggableId, destination } = result;
+    if (!destination) return;
+    const newPriority = destination.droppableId as MoscowPriority;
+    const item = selectedProject?.backlogItems?.find(bi => bi.id === draggableId);
+    if (!item || item.moscowPriority === newPriority) return;
+    await updateBacklogItem(draggableId, { moscowPriority: newPriority });
+  }, [selectedProject, updateBacklogItem]);
+
+  const handleExportExcel = useCallback(() => {
+    if (!selectedProject?.backlogItems?.length) return;
+    const data = selectedProject.backlogItems.map(item => ({
+      Titel: item.title,
+      Beschrijving: item.description || '',
+      MoSCoW: MOSCOW_CONFIG[item.moscowPriority].label,
+      'Gekoppelde Story': (item.linkedStoryIds || []).join(', '),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Backlog');
+    XLSX.writeFile(wb, `${selectedProject.name}_backlog.xlsx`);
+  }, [selectedProject]);
 
   if (loading) {
     return (
@@ -266,6 +323,17 @@ function BacklogContent() {
                   </div>
 
                   <button
+                    onClick={handleExportExcel}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    title={t.backlog.exportExcel}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {t.backlog.exportExcel}
+                  </button>
+
+                  <button
                     onClick={handleNew}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                   >
@@ -313,6 +381,7 @@ function BacklogContent() {
                               onEdit={handleEdit}
                               onDelete={handleDelete}
                               onCreateStory={handleCreateStoryForItem}
+                              onAddToActiveSprint={handleAddToActiveSprint}
                               sprints={allSprints}
                             />
                           ))}
@@ -323,8 +392,9 @@ function BacklogContent() {
                 })}
               </div>
               ) : (
-              /* MoSCoW Groups - Board View (columns side by side) */
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              /* MoSCoW Groups - Board View (columns side by side, drag and drop) */
+              <DragDropContext onDragEnd={handleDragEnd}>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                 {MOSCOW_ORDER.map((priority) => {
                   const config = MOSCOW_CONFIG[priority];
                   const items = groupedItems[priority];
@@ -343,30 +413,52 @@ function BacklogContent() {
                         </div>
                       </div>
 
-                      {/* Column Items */}
-                      <div className="flex-1 p-2 space-y-2 min-h-[200px]">
-                        {items.length === 0 ? (
-                          <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
-                            {t.backlog.noItems}
+                      {/* Column Items - Droppable */}
+                      <Droppable droppableId={priority}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`flex-1 p-2 space-y-2 min-h-[200px] transition-colors ${
+                              snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            }`}
+                          >
+                            {items.length === 0 && !snapshot.isDraggingOver ? (
+                              <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500 italic">
+                                {t.backlog.noItems}
+                              </div>
+                            ) : (
+                              items.map((item, index) => (
+                                <Draggable key={item.id} draggableId={item.id} index={index}>
+                                  {(dragProvided) => (
+                                    <div
+                                      ref={dragProvided.innerRef}
+                                      {...dragProvided.draggableProps}
+                                      {...dragProvided.dragHandleProps}
+                                    >
+                                      <BacklogItemCard
+                                        item={item}
+                                        allStories={allStories}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                        onCreateStory={handleCreateStoryForItem}
+                                        onAddToActiveSprint={handleAddToActiveSprint}
+                                        sprints={allSprints}
+                                      />
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))
+                            )}
+                            {provided.placeholder}
                           </div>
-                        ) : (
-                          items.map((item) => (
-                            <BacklogItemCard
-                              key={item.id}
-                              item={item}
-                              allStories={allStories}
-                              onEdit={handleEdit}
-                              onDelete={handleDelete}
-                              onCreateStory={handleCreateStoryForItem}
-                              sprints={allSprints}
-                            />
-                          ))
                         )}
-                      </div>
+                      </Droppable>
                     </div>
                   );
                 })}
               </div>
+              </DragDropContext>
               )}
             </>
           )}
@@ -428,6 +520,7 @@ function BacklogItemRow({
   onEdit,
   onDelete,
   onCreateStory,
+  onAddToActiveSprint,
   sprints,
 }: {
   item: BacklogItem;
@@ -435,6 +528,7 @@ function BacklogItemRow({
   onEdit: (item: BacklogItem) => void;
   onDelete: (id: string) => void;
   onCreateStory: (backlogItemId: string) => void;
+  onAddToActiveSprint: (backlogItemId: string) => void;
   sprints: Sprint[];
 }) {
   const linkedStories = allStories.filter(s => item.linkedStoryIds?.includes(s.id));
@@ -494,6 +588,15 @@ function BacklogItemRow({
         {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
+            onClick={() => onAddToActiveSprint(item.id)}
+            className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+            title={t.backlog.addToActiveSprint}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+          <button
             onClick={() => onCreateStory(item.id)}
             className="p-1.5 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
             title={t.backlog.createStory}
@@ -533,6 +636,7 @@ function BacklogItemCard({
   onEdit,
   onDelete,
   onCreateStory,
+  onAddToActiveSprint,
   sprints,
 }: {
   item: BacklogItem;
@@ -540,6 +644,7 @@ function BacklogItemCard({
   onEdit: (item: BacklogItem) => void;
   onDelete: (id: string) => void;
   onCreateStory: (backlogItemId: string) => void;
+  onAddToActiveSprint: (backlogItemId: string) => void;
   sprints: Sprint[];
 }) {
   const linkedStories = allStories.filter(s => item.linkedStoryIds?.includes(s.id));
@@ -559,6 +664,15 @@ function BacklogItemCard({
           {item.title}
         </h4>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddToActiveSprint(item.id); }}
+            className="p-1 text-gray-300 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400"
+            title={t.backlog.addToActiveSprint}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); onCreateStory(item.id); }}
             className="p-1 text-gray-300 hover:text-green-500 dark:text-gray-500 dark:hover:text-green-400"
