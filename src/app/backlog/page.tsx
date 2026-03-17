@@ -83,6 +83,9 @@ function BacklogContent() {
     return selectedProject.sprints?.flatMap(s => s.stories || []) || [];
   }, [selectedProject]);
 
+  // Optimistic priority overrides for instant drag feedback
+  const [priorityOverrides, setPriorityOverrides] = useState<Record<string, MoscowPriority>>({});
+
   // Group backlog items by MoSCoW priority
   const groupedItems = useMemo(() => {
     const items = selectedProject?.backlogItems || [];
@@ -94,10 +97,11 @@ function BacklogContent() {
       WONT: [],
     };
     for (const item of items) {
-      grouped[item.moscowPriority].push(item);
+      const priority = priorityOverrides[item.id] || item.moscowPriority;
+      grouped[priority].push(item);
     }
     return grouped;
-  }, [selectedProject]);
+  }, [selectedProject, priorityOverrides]);
 
   const handleSave = async (data: Partial<BacklogItem>) => {
     if (!selectedProject) return;
@@ -185,7 +189,18 @@ function BacklogContent() {
     const newPriority = destination.droppableId as MoscowPriority;
     const item = selectedProject?.backlogItems?.find(bi => bi.id === draggableId);
     if (!item || item.moscowPriority === newPriority) return;
-    await updateBacklogItem(draggableId, { moscowPriority: newPriority });
+    // Optimistic update: move item visually immediately
+    setPriorityOverrides(prev => ({ ...prev, [draggableId]: newPriority }));
+    try {
+      await updateBacklogItem(draggableId, { moscowPriority: newPriority });
+    } finally {
+      // Clear override after DB sync (fetchData will have fresh data)
+      setPriorityOverrides(prev => {
+        const next = { ...prev };
+        delete next[draggableId];
+        return next;
+      });
+    }
   }, [selectedProject, updateBacklogItem]);
 
   const handleExportExcel = useCallback(() => {
